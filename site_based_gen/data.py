@@ -5,8 +5,7 @@ from scipy import ndimage
 import numpy as np
 import torch
 import h5py
-from preprocess import Featurizer
-from math import pi
+from molpro.utils.preprocess import Featurizer
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningDataModule
 import os
