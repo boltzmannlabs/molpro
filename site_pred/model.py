@@ -1,6 +1,6 @@
 import torch
 from pytorch_lightning import LightningModule, Trainer
-from boltpro.models.unet import UNet, DiceLoss, compute_per_channel_dice
+from molpro.models.unet import UNet, DiceLoss, compute_per_channel_dice
 from data import SitepredDataModule
 from argparse import ArgumentParser
 
