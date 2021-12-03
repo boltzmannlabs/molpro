@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from pytorch_lightning import Trainer, LightningModule
-from bicycle_gan import Generator, Discriminator, Encoder
+from molpro.models.bicycle_gan import Generator, Discriminator, Encoder
 from data import BicycleGANDataModule
 from argparse import ArgumentParser
 import pytorch_lightning as pl
