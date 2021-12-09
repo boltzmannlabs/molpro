@@ -1,6 +1,6 @@
 import torch
 from pytorch_lightning import LightningModule, Trainer
-from molpro.models.resnet import ResNetModel
+from molpro.models.resnet import ResNet
 from data import ResNetDataModule
 from argparse import ArgumentParser
 import torchmetrics
