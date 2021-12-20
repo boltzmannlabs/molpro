@@ -21,7 +21,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torch.autograd import Variable
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-import utils_preprocess as bup
+import utils.preprocess as bup
 from typing import Callable, List
 from rdkit import Chem
 

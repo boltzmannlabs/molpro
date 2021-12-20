@@ -14,7 +14,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 #import utils_preprocess as bup
-from utils import preprocess as bup
+import utils.preprocess as bup
 from typing import Callable, List
 from rdkit import Chem
 from models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
@@ -69,7 +69,7 @@ class BpModule(pl.LightningModule):
         self.vae_model = vae_model
         self.cap_loss = 0.
         ######################################################################################################################################################################
-        self.caption_start = 1   # in config file caption.start = 4000
+        self.caption_start = 4000   # in config file caption.start = 4000
         #######################################################################################################################################################################
         self.caption_criterion = nn.CrossEntropyLoss()
         self.reconstruction_function = nn.BCELoss()
