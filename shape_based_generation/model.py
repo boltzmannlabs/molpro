@@ -17,7 +17,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from utils import preprocess as bup
 from typing import Callable, List
 from rdkit import Chem
-from model_archs import ShapeEncoder, DecoderRNN, VAE
+from models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
 
 from data import SmilesDataset
 from data import BpDataModule
