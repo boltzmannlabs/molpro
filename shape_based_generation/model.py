@@ -203,8 +203,8 @@ def main(params):
 
     #encoder = ShapeEncoder(5)
     encoder = ShapeEncoder(35)
-    #decoder = DecoderRNN(512, 1024, 29, 1,params.device) # Original 
-    decoder = DecoderRNN(512, 16, 29, 1,params.device) # reduced no. of params just to check training on my system
+    decoder = DecoderRNN(512, 1024, 29, 1,params.device) # Original 
+    #decoder = DecoderRNN(512, 16, 29, 1,params.device) # reduced no. of params just to check training on my system
     vae_model = VAE(nc=35,device=params.device)
 
     model = BpModule(encoder, decoder, vae_model)
