@@ -71,7 +71,7 @@ class VAE(nn.Module):
         self.latent_variable_size = latent_variable_size
 
         # encoder
-        self.e1 = ConvBlock(34, 32, k=3, s=1, p=1, norm=True, non_linear='leaky_relu')
+        self.e1 = ConvBlock(self.nc, 32, k=3, s=1, p=1, norm=True, non_linear='leaky_relu')
 
         self.e2 = ConvBlock(32, 32, k=3, s=2, p=1, norm=True, non_linear='leaky_relu')
 
