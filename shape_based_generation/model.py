@@ -1,28 +1,16 @@
 import argparse
-import csv
 import numpy as np
-import traceback
 import time
 from datetime import datetime
 import os
-#from pytorch_lightning import profiler
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
-from torch.utils.data import Dataset, DataLoader, random_split
-#from torch.autograd import Variable
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-#import utils_preprocess as bup
-import preprocess as bup
-from typing import Callable, List
-from rdkit import Chem
-from shape_captioning import ShapeEncoder, DecoderRNN, VAE
-
-from data import SmilesDataset
-from data import BpDataModule
-from data import read_smi
-from data import read_csv
+import utils.preprocess as bup
+from models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
+from data import SmilesDataset,BpDataModule, read_smi, read_csv
 
 
 
@@ -69,7 +57,7 @@ class BpModule(pl.LightningModule):
         self.vae_model = vae_model
         self.cap_loss = 0.
         ######################################################################################################################################################################
-        self.caption_start = 1   # in config file caption.start = 4000
+        self.caption_start = 4000  
         #######################################################################################################################################################################
         self.caption_criterion = nn.CrossEntropyLoss()
         self.reconstruction_function = nn.BCELoss()
