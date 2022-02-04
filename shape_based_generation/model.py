@@ -14,10 +14,10 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 #import utils_preprocess as bup
-import utils.preprocess as bup
+import preprocess as bup
 from typing import Callable, List
 from rdkit import Chem
-from models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
+from shape_captioning import ShapeEncoder, DecoderRNN, VAE
 
 from data import SmilesDataset
 from data import BpDataModule
@@ -37,7 +37,7 @@ def parse_options():
                         help="Path to input smi file.")
     parser.add_argument("--batch_size", default=32, type=int,
                         help="batch size for single gpu")
-    parser.add_argument("--max_epochs", default=1, type=int,
+    parser.add_argument("--max_epochs", default=3, type=int,
                          help="max epochs to train for")
     parser.add_argument("--device", default="cpu", type=str,
                            help="on which device you want to train the model (cpu or cuda)")
@@ -69,7 +69,7 @@ class BpModule(pl.LightningModule):
         self.vae_model = vae_model
         self.cap_loss = 0.
         ######################################################################################################################################################################
-        self.caption_start = 4000   # in config file caption.start = 4000
+        self.caption_start = 1   # in config file caption.start = 4000
         #######################################################################################################################################################################
         self.caption_criterion = nn.CrossEntropyLoss()
         self.reconstruction_function = nn.BCELoss()
@@ -77,6 +77,7 @@ class BpModule(pl.LightningModule):
         self.rec_loss_func = loss_function
         self.automatic_optimization = False
         self.save_hyperparameters()
+
 
     def forward(self, x, only_vae = False):
         
@@ -88,7 +89,6 @@ class BpModule(pl.LightningModule):
             features = self.encoder(recon_batch)
             outputs = self.decoder(features, caption, lengths)
             return outputs
-
 
 
     def training_step(self, batch, batch_idx):
@@ -177,16 +177,26 @@ class BpModule(pl.LightningModule):
         caption_params = list(self.decoder.parameters()) + \
             list(self.encoder.parameters())
         
-        caption_optimizer = torch.optim.Adam(
-                                        caption_params,
-                                        lr=.001)
-
+        caption_optimizer = torch.optim.Adam(caption_params,lr=.001)
 
         vae_optimizer = None
         
         vae_optimizer = torch.optim.Adam(self.vae_model.parameters(),
                                              lr=1e-4)
         return caption_optimizer, vae_optimizer
+
+
+    def prediction(self,data,sample_prob=False):
+
+        recon_batch  = self.vae_model(data)
+        features = self.encoder(recon_batch)
+        if sample_prob :
+            output = self.decoder.sample_prob(features)
+        else :
+            output = self.decoder.sample(features)
+
+        return output
+
 
 
 def main(params):
@@ -203,21 +213,21 @@ def main(params):
 
     #encoder = ShapeEncoder(5)
     encoder = ShapeEncoder(35)
-    decoder = DecoderRNN(512, 1024, 29, 1,params.device) # Original 
-    #decoder = DecoderRNN(512, 16, 29, 1,params.device) # reduced no. of params just to check training on my system
+    #decoder = DecoderRNN(512, 1024, 29, 1,params.device) # Original 
+    decoder = DecoderRNN(512, 16, 29, 1,params.device) # reduced no. of params just to check training on my system
     vae_model = VAE(nc=35,device=params.device)
 
     model = BpModule(encoder, decoder, vae_model)
     cur_time = datetime.now().strftime("%d%m%Y_%H:%M:%S")
     save_models_dir = "./trained-models/"
     os.makedirs(save_models_dir, exist_ok=True)
-    checkpoint_callback1 = ModelCheckpoint(
+    """checkpoint_callback1 = ModelCheckpoint(
         monitor="val_p_loss",
         dirpath=save_models_dir,
         filename="val-ligdream-{epoch:02d}-{val_p_loss:.2f}"+f"-{cur_time}",
         save_top_k=3,
         mode="min"
-    )
+    )"""
     checkpoint_callback2 = ModelCheckpoint(
         monitor="val_cap_loss",
         dirpath=save_models_dir,
@@ -231,7 +241,7 @@ def main(params):
                          progress_bar_refresh_rate=20,
                          gpus = -1 if torch.cuda.is_available() else None,
                          #gpus = int(params.gpus),
-                         callbacks=[checkpoint_callback1,checkpoint_callback2]
+                         callbacks=[checkpoint_callback2]
                          )
     trainer.fit(model, bpdata)
     trainer.test(model, bpdata)
@@ -242,7 +252,4 @@ if __name__ == "__main__":
     configs = parse_options()
     main(configs)
     print(f"Total time taken: {time.perf_counter() - st}")
-
-
-
 

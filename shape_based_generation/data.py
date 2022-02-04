@@ -1,7 +1,7 @@
 from typing import Callable, List
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
-import utils_preprocess as bup
+import preprocess as bup
 import numpy as np
 from rdkit import Chem
 
@@ -21,7 +21,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torch.autograd import Variable
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-import utils.preprocess as bup
+import preprocess as bup
 from typing import Callable, List
 from rdkit import Chem
 
@@ -35,6 +35,8 @@ VOCAB_LIST = [
                 "#", "=", "-", "(", ")"  # Misc
             ]
 
+vocab_c2i_v1 = {x: i for i, x in enumerate(VOCAB_LIST)}
+vocab_i2c_v1 = {i: x for i, x in enumerate(VOCAB_LIST)}
 
 
 def read_smi(smiles_path: str) -> List[str]:
@@ -44,7 +46,7 @@ def read_smi(smiles_path: str) -> List[str]:
     smiles_tokens = None
     with open(smiles_path, 'r') as wf:
         smiles_tokens = wf.read().split('\n')
-    return smiles_tokens
+    return smiles_tokens[:500]
 
 
 def read_csv(csv_path: str) -> List[str]:
@@ -109,9 +111,6 @@ class SmilesDataset(Dataset):
         sstring = Chem.MolToSmiles(mol)  # Make the SMILES canonical.
         sstring = sstring.replace("Cl", "X").replace("[nH]", "Y") \
                                             .replace("Br", "Z")
-
-
-        vocab_c2i_v1 = {x: i for i, x in enumerate(VOCAB_LIST)}
         try:
             vals = [1] + \
                    [vocab_c2i_v1[xchar] for xchar in sstring] + \
