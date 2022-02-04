@@ -1,29 +1,17 @@
-from typing import Callable, List
-import torch
-from torch.utils.data import Dataset, DataLoader, random_split
-import preprocess as bup
-import numpy as np
-from rdkit import Chem
-
-
 import argparse
 import csv
-import numpy as np
-import traceback
-import time
-from datetime import datetime
 import os
+import numpy as np
+from rdkit import Chem
+from typing import Callable, List
 from pytorch_lightning import profiler
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.utils.data import Dataset, DataLoader, random_split
-from torch.autograd import Variable
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-import preprocess as bup
-from typing import Callable, List
-from rdkit import Chem
+import utils.preprocess as bup
 
 VOCAB_LIST = [
                 "pad", "start", "end",
