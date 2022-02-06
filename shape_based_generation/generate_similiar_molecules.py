@@ -1,10 +1,10 @@
 
 from importlib.resources import path
 from typing import Callable, List
-from shape_captioning import ShapeEncoder, DecoderRNN, VAE
+from models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
 from model import BpModule
 import torch
-import preprocess as bup
+import utils.preprocess as bup
 from rdkit import Chem
 import numpy as np
 from data import vocab_i2c_v1,vocab_c2i_v1
@@ -35,7 +35,7 @@ def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
         ----------------
 
         INPUT ARGS ::
-        
+
         input_smiles : List[str]
                        those simles for which you want to generated similar smiles. input should be in ['smile_1,smiles_2,.....,smile_n] format
         ckpt_path : str
