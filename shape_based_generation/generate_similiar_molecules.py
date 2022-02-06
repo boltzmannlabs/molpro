@@ -1,5 +1,6 @@
 
 from importlib.resources import path
+from typing import Callable, List
 from shape_captioning import ShapeEncoder, DecoderRNN, VAE
 from model import BpModule
 import torch
@@ -9,23 +10,45 @@ import numpy as np
 from data import vocab_i2c_v1,vocab_c2i_v1
 
 
-def unique_canonical(in_mols):
+def unique_canonical(smiles):
     """
     :param in_mols - list of SMILES strings
     :return: list of uinique and valid SMILES strings in canonical form.
     """
-    xresults = [Chem.MolFromSmiles(x) for x in in_mols]  # Convert to RDKit Molecule
+    xresults = [Chem.MolFromSmiles(x) for x in smiles]  # Convert to RDKit Molecule
     xresults = [Chem.MolToSmiles(x) for x in xresults if x is not None]  # Filter out invalids
     #return [Chem.MolFromSmiles(x) for x in set(xresults)]  # Check for duplicates and filter out invalids
     return list(set(xresults))
 
 
 
-def generate_molecules(smiles = None , ckpt_path = None, n_attempts = 20 , sample_prob = False , unique_valid = False):
-    
+def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
+                               n_attempts :int= 20 , sample_prob :bool= False
+                               ,unique_valid :bool= False):
+    """ This function takes INPUT ARGS and returns generated smiles in this format 
+    generated_smiles = {"smile_1":[gen_smi_1,gen_smi_2......,gen_smi_n],
+                        "smile_2":[gen_smi_1,gen_smi_2......,gen_smi_n],
+                        .
+                        .
+                        .
+                        "smile_+str(len(input_smiles))": [gen_smi_1,gen_smi_2.......,gen_smi_n] }
+        ----------------
 
-    if smiles or ckpt_path is None:
-        raise TypeError('Please give right smiles and ckpt file.')
+        INPUT ARGS ::
+        
+        input_smiles : List[str]
+                       those simles for which you want to generated similar smiles. input should be in ['smile_1,smiles_2,.....,smile_n] format
+        ckpt_path : str
+                       path for the trained lightning model
+        n_attempts : int
+                       how many number of smiliar smiles you want to generate per smile
+        sample_prob : bool
+                       samples smiles tockens for given shape features (probalistic picking)
+        unique_valid : bool 
+                       want to filter unique smiles from generated smiles or not.? """
+        
+    if input_smiles or ckpt_path is None:
+        raise TypeError('Please give right input_molecule and ckpt file.')
     encoder = ShapeEncoder(35)
     #decoder = DecoderRNN(512, 1024, 29, 1,params.device) # Original 
     decoder = DecoderRNN(512, 16, 29, 1,"cpu") # reduced no. of params just to check training on my system
@@ -37,8 +60,8 @@ def generate_molecules(smiles = None , ckpt_path = None, n_attempts = 20 , sampl
 
 
     generated_smiles = dict()
-    for smi in smiles:
-        featurizer = bup.Featurizer(smi, 'smi', False, False,True, True, True)
+    for smi in input_smiles:
+        featurizer = bup.Featurizer(smi)
         featurizer.generate_conformer()
         coords = featurizer.get_coords()
         centroid = coords.mean(axis=0)

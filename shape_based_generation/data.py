@@ -34,7 +34,7 @@ def read_smi(smiles_path: str) -> List[str]:
     smiles_tokens = None
     with open(smiles_path, 'r') as wf:
         smiles_tokens = wf.read().split('\n')
-    return smiles_tokens[:500]
+    return smiles_tokens
 
 
 def read_csv(csv_path: str) -> List[str]:
@@ -48,7 +48,6 @@ def read_csv(csv_path: str) -> List[str]:
         for i in data:
             smiles_tokens.append(i[0])
         return smiles_tokens
-
 
 
 def custom_collate(in_data):
@@ -74,17 +73,17 @@ def custom_collate(in_data):
 class SmilesDataset(Dataset):
     """pytorch dataset for generating smiles tokens"""
 
-    def __init__(self,smiles_tokens: List[str]):
+    def __init__(self,smiles_tokens: List[str],file_type:str="smi"):
 
         self.smiles_tokens = smiles_tokens
+        self.file_type = file_type
 
     def __len__(self):
         return len(self.smiles_tokens)
 
     def __getitem__(self, idx: int):
         smiles_token = self.smiles_tokens[idx]
-        featurizer = bup.Featurizer(smiles_token, 'smi', False, False,
-                                    True, True, True)
+        featurizer = bup.Featurizer(smiles_token)
         featurizer.generate_conformer()
         coords = featurizer.get_coords()
         centroid = coords.mean(axis=0)
@@ -115,11 +114,26 @@ class SmilesDataset(Dataset):
 
 
 class BpDataModule(pl.LightningDataModule):
-    """Lightning datamodule to handle dataprep for dataloaders"""
+    
+    """Lightning datamodule to handle dataprep for dataloaders
+        ---------------------
+        smiles_path : str 
+                    path of the smile dataset
+        train_pc  : float 
+                  % of data should use for training of model
+        val_pc  : float 
+                  % of data should use for validation of model
+        batch_size : int
+                  batch_size for model training
+        read_func  : callable function
+                   read_smi if input smile dataset is in '.smi' file or read_csv for '.csv' file 
+        num_workers: int,
+                number of workers for pytorch dataloader """
+        
 
     def __init__(self,smiles_path: str = './', train_pc: float = 0.9,
-                               val_pc: float = 0.1, batch_size: int = 1,
-                                    nworkers: int = 6):
+                               val_pc: float = 0.1, batch_size: int = 16,
+                               read_func: Callable = read_smi,nworkers: int = 6):
 
 
         super().__init__()
@@ -128,21 +142,20 @@ class BpDataModule(pl.LightningDataModule):
         self.val_pc = val_pc
         self.batch_size = batch_size
         self.smiles_tokens = None
+        self.read_func = read_func
         self.nworkers = nworkers
 
-    def prepare_data(self, read_func: Callable = read_smi):
+    def prepare_data(self):
         if not os.path.exists(self.smiles_path):
             raise FileNotFoundError(f"file doesn't exist: {self.smiles_path}")
-        self.smiles_tokens = read_func(self.smiles_path)
+        self.smiles_tokens = self.read_func(self.smiles_path)
         self.train_len = int(self.train_pc * len(self.smiles_tokens))
         self.test_len = len(self.smiles_tokens) - self.train_len
         self.val_len = max(1, int(self.val_pc * self.train_len))
         print("Train_data_len:",self.train_len,"Val_data_len:", self.val_len,"Test_data_len:", self.test_len)
 
     def setup(self, stage=None):
-        """for older versions of pytorch this method needs to be
-        separately called"""
-
+        
         if stage == 'fit' or stage is None:
             bpdata = SmilesDataset(self.smiles_tokens[:self.train_len])
             self.bptrain, self.bpval = \
