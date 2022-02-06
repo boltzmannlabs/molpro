@@ -12,8 +12,8 @@ class Featurizer:
     """Calculates atomic features for molecules. Features can encode atom type,
     native rdkit properties and SMARTS strings"""
 
-    def __init__(self, input_file: str, file_type: str, one_hot_metal: bool,
-                 one_hot_halogen: bool, use_ring_size: bool, use_smarts: bool, use_gasteiger: bool) -> None:
+    def __init__(self, input_file: str, file_type :str= "smi", one_hot_metal: bool=False,
+                 one_hot_halogen: bool=False, use_ring_size: bool=True, use_smarts: bool=True, use_gasteiger: bool=True) -> None:
 
         """Parameters
         ----------
@@ -397,8 +397,3 @@ def make_3dgrid(coords: np.ndarray, features: np.ndarray, max_dist: int, grid_re
         grid[0, x, y, z] += f
 
     return grid
-
-
-def smile_to_graph(smile) -> None:
-    """convert smile to graph representation"""
-    return None

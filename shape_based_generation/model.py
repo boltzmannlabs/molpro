@@ -1,28 +1,16 @@
 import argparse
-import csv
 import numpy as np
-import traceback
 import time
 from datetime import datetime
 import os
-#from pytorch_lightning import profiler
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
-from torch.utils.data import Dataset, DataLoader, random_split
-#from torch.autograd import Variable
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-#import utils_preprocess as bup
 import utils.preprocess as bup
-from typing import Callable, List
-from rdkit import Chem
 from models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
-
-from data import SmilesDataset
-from data import BpDataModule
-from data import read_smi
-from data import read_csv
+from data import SmilesDataset,BpDataModule, read_smi, read_csv
 
 
 
@@ -34,15 +22,17 @@ def parse_options():
     parser = argparse.ArgumentParser('modify config options by adding \
                                       KEY VAL pairs', add_help=False)
     parser.add_argument("-i", "--input_path", required=True,
-                        help="Path to input smi file.")
+                                help="Path to input smi file.")
     parser.add_argument("--batch_size", default=32, type=int,
-                        help="batch size for single gpu")
-    parser.add_argument("--max_epochs", default=1, type=int,
-                         help="max epochs to train for")
+                                help="batch size for single gpu")
+    parser.add_argument("--max_epochs", default=3, type=int,
+                                help="max epochs to train for")
+    parser.add_argument("--num_workers", type=int, default=8,
+                                help="number of workers for pytorch dataloader")
     parser.add_argument("--device", default="cpu", type=str,
-                           help="on which device you want to train the model (cpu or cuda)")
+                                help="on which device you want to train the model (cpu or cuda)")
     parser.add_argument("--gpus", default=1, type=int,
-                         help="numbers of gpus to train model")
+                                help="numbers of gpus to train model")
     
     args, unparsed = parser.parse_known_args()
     return args
@@ -69,7 +59,7 @@ class BpModule(pl.LightningModule):
         self.vae_model = vae_model
         self.cap_loss = 0.
         ######################################################################################################################################################################
-        self.caption_start = 4000   # in config file caption.start = 4000
+        self.caption_start = 4000  
         #######################################################################################################################################################################
         self.caption_criterion = nn.CrossEntropyLoss()
         self.reconstruction_function = nn.BCELoss()
@@ -77,6 +67,7 @@ class BpModule(pl.LightningModule):
         self.rec_loss_func = loss_function
         self.automatic_optimization = False
         self.save_hyperparameters()
+
 
     def forward(self, x, only_vae = False):
         
@@ -88,7 +79,6 @@ class BpModule(pl.LightningModule):
             features = self.encoder(recon_batch)
             outputs = self.decoder(features, caption, lengths)
             return outputs
-
 
 
     def training_step(self, batch, batch_idx):
@@ -132,8 +122,6 @@ class BpModule(pl.LightningModule):
         mol_batch, caption, lengths = batch
         x = batch
         recon_batch,mu,logvar = self(x,only_vae = True)
-        """vae_loss = self.rec_loss_func(self.reconstruction_function,
-                                      recon_batch, in_data, mu, logvar)"""
         vae_loss = self.rec_loss_func(self.reconstruction_function,
                                       recon_batch, mol_batch, mu, logvar)
         
@@ -141,15 +129,15 @@ class BpModule(pl.LightningModule):
         self.log("val_p_loss", p_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         cap_loss = 0
-        #if batch_idx > self.caption_start:
-        captions = caption.to(self.device)
-        targets = pack_padded_sequence(captions,
-                                        lengths, batch_first=True)[0]
-        self.decoder.zero_grad()
-        self.encoder.zero_grad()
-        outputs = self(x)
-        cap_loss = self.caption_criterion(outputs, targets)
-        self.log("val_cap_loss", cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        if batch_idx > self.caption_start:
+            captions = caption.to(self.device)
+            targets = pack_padded_sequence(captions,
+                                            lengths, batch_first=True)[0]
+            self.decoder.zero_grad()
+            self.encoder.zero_grad()
+            outputs = self(x)
+            cap_loss = self.caption_criterion(outputs, targets)
+            self.log("val_cap_loss", cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
     def test_step(self, batch, batch_idx):
         mol_batch, caption, lengths = batch
@@ -162,31 +150,37 @@ class BpModule(pl.LightningModule):
         self.log("test_p_loss", p_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         cap_loss = 0
-        #if batch_idx > self.caption_start:
-        captions = caption.to(self.device)
-        targets = pack_padded_sequence(captions,
-                                        lengths, batch_first=True)[0]
-        self.decoder.zero_grad()
-        self.encoder.zero_grad()
-        outputs = self(x)
-        cap_loss = self.caption_criterion(outputs, targets)
-        self.log("test_cap_loss", cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        if batch_idx > self.caption_start:
+            captions = caption.to(self.device)
+            targets = pack_padded_sequence(captions,
+                                            lengths, batch_first=True)[0]
+            self.decoder.zero_grad()
+            self.encoder.zero_grad()
+            outputs = self(x)
+            cap_loss = self.caption_criterion(outputs, targets)
+            self.log("test_cap_loss", cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
     def configure_optimizers(self):
         caption_optimizer = None
         caption_params = list(self.decoder.parameters()) + \
             list(self.encoder.parameters())
         
-        caption_optimizer = torch.optim.Adam(
-                                        caption_params,
-                                        lr=.001)
-
-
+        caption_optimizer = torch.optim.Adam(caption_params,lr=.001)
         vae_optimizer = None
-        
-        vae_optimizer = torch.optim.Adam(self.vae_model.parameters(),
-                                             lr=1e-4)
+        vae_optimizer = torch.optim.Adam(self.vae_model.parameters(),lr=1e-4)
         return caption_optimizer, vae_optimizer
+
+
+    def prediction(self,data,sample_prob=False):
+
+        recon_batch  = self.vae_model(data)
+        features = self.encoder(recon_batch)
+        if sample_prob :
+            output = self.decoder.sample_prob(features)
+        else :
+            output = self.decoder.sample(features)
+            return output
+
 
 
 def main(params):
@@ -194,23 +188,21 @@ def main(params):
     st = time.perf_counter()
 
     bpdata = BpDataModule(smiles_path=params.input_path,
-                          batch_size=params.batch_size)
-    read_func = read_csv
-    if params.input_path.endswith("smi"):
-        read_func = read_smi
-    bpdata.prepare_data(read_func=read_func)
-    print(f"time taken to process dataset: {time.perf_counter() - st} secs")
+                          batch_size=params.batch_size,
+                          read_func=read_smi if params.input_path.endswith("smi") else read_csv,
+                          nworkers = params.nworkers)
 
-    #encoder = ShapeEncoder(5)
+    bpdata.prepare_data()
+    print(f"time taken to process dataset: {time.perf_counter() - st} secs")
     encoder = ShapeEncoder(35)
-    decoder = DecoderRNN(512, 1024, 29, 1,params.device) # Original 
-    #decoder = DecoderRNN(512, 16, 29, 1,params.device) # reduced no. of params just to check training on my system
+    decoder = DecoderRNN(512, 1024, 29, 1,params.device)
     vae_model = VAE(nc=35,device=params.device)
 
     model = BpModule(encoder, decoder, vae_model)
     cur_time = datetime.now().strftime("%d%m%Y_%H:%M:%S")
     save_models_dir = "./trained-models/"
     os.makedirs(save_models_dir, exist_ok=True)
+
     checkpoint_callback1 = ModelCheckpoint(
         monitor="val_p_loss",
         dirpath=save_models_dir,
@@ -229,8 +221,7 @@ def main(params):
     print("Starting of trainers")
     trainer = pl.Trainer(max_epochs=int(params.max_epochs),
                          progress_bar_refresh_rate=20,
-                         gpus = -1 if torch.cuda.is_available() else None,
-                         #gpus = int(params.gpus),
+                         gpus = None if params.device == "cpu" else int(params.gpus),
                          callbacks=[checkpoint_callback1,checkpoint_callback2]
                          )
     trainer.fit(model, bpdata)
@@ -242,7 +233,5 @@ if __name__ == "__main__":
     configs = parse_options()
     main(configs)
     print(f"Total time taken: {time.perf_counter() - st}")
-
-
 
 

@@ -1,29 +1,17 @@
-from typing import Callable, List
-import torch
-from torch.utils.data import Dataset, DataLoader, random_split
-import utils_preprocess as bup
-import numpy as np
-from rdkit import Chem
-
-
 import argparse
 import csv
-import numpy as np
-import traceback
-import time
-from datetime import datetime
 import os
+import numpy as np
+from rdkit import Chem
+from typing import Callable, List
 from pytorch_lightning import profiler
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.utils.data import Dataset, DataLoader, random_split
-from torch.autograd import Variable
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 import utils.preprocess as bup
-from typing import Callable, List
-from rdkit import Chem
 
 VOCAB_LIST = [
                 "pad", "start", "end",
@@ -35,6 +23,8 @@ VOCAB_LIST = [
                 "#", "=", "-", "(", ")"  # Misc
             ]
 
+vocab_c2i_v1 = {x: i for i, x in enumerate(VOCAB_LIST)}
+vocab_i2c_v1 = {i: x for i, x in enumerate(VOCAB_LIST)}
 
 
 def read_smi(smiles_path: str) -> List[str]:
@@ -60,7 +50,6 @@ def read_csv(csv_path: str) -> List[str]:
         return smiles_tokens
 
 
-
 def custom_collate(in_data):
     """
     Collects and creates a batch.
@@ -84,17 +73,17 @@ def custom_collate(in_data):
 class SmilesDataset(Dataset):
     """pytorch dataset for generating smiles tokens"""
 
-    def __init__(self,smiles_tokens: List[str]):
+    def __init__(self,smiles_tokens: List[str],file_type:str="smi"):
 
         self.smiles_tokens = smiles_tokens
+        self.file_type = file_type
 
     def __len__(self):
         return len(self.smiles_tokens)
 
     def __getitem__(self, idx: int):
         smiles_token = self.smiles_tokens[idx]
-        featurizer = bup.Featurizer(smiles_token, 'smi', False, False,
-                                    True, True, True)
+        featurizer = bup.Featurizer(smiles_token)
         featurizer.generate_conformer()
         coords = featurizer.get_coords()
         centroid = coords.mean(axis=0)
@@ -109,9 +98,6 @@ class SmilesDataset(Dataset):
         sstring = Chem.MolToSmiles(mol)  # Make the SMILES canonical.
         sstring = sstring.replace("Cl", "X").replace("[nH]", "Y") \
                                             .replace("Br", "Z")
-
-
-        vocab_c2i_v1 = {x: i for i, x in enumerate(VOCAB_LIST)}
         try:
             vals = [1] + \
                    [vocab_c2i_v1[xchar] for xchar in sstring] + \
@@ -128,11 +114,26 @@ class SmilesDataset(Dataset):
 
 
 class BpDataModule(pl.LightningDataModule):
-    """Lightning datamodule to handle dataprep for dataloaders"""
+    
+    """Lightning datamodule to handle dataprep for dataloaders
+        ---------------------
+        smiles_path : str 
+                    path of the smile dataset
+        train_pc  : float 
+                  % of data should use for training of model
+        val_pc  : float 
+                  % of data should use for validation of model
+        batch_size : int
+                  batch_size for model training
+        read_func  : callable function
+                   read_smi if input smile dataset is in '.smi' file or read_csv for '.csv' file 
+        num_workers: int,
+                number of workers for pytorch dataloader """
+        
 
     def __init__(self,smiles_path: str = './', train_pc: float = 0.9,
-                               val_pc: float = 0.1, batch_size: int = 1,
-                                    nworkers: int = 6):
+                               val_pc: float = 0.1, batch_size: int = 16,
+                               read_func: Callable = read_smi,nworkers: int = 6):
 
 
         super().__init__()
@@ -141,21 +142,20 @@ class BpDataModule(pl.LightningDataModule):
         self.val_pc = val_pc
         self.batch_size = batch_size
         self.smiles_tokens = None
+        self.read_func = read_func
         self.nworkers = nworkers
 
-    def prepare_data(self, read_func: Callable = read_smi):
+    def prepare_data(self):
         if not os.path.exists(self.smiles_path):
             raise FileNotFoundError(f"file doesn't exist: {self.smiles_path}")
-        self.smiles_tokens = read_func(self.smiles_path)
+        self.smiles_tokens = self.read_func(self.smiles_path)
         self.train_len = int(self.train_pc * len(self.smiles_tokens))
         self.test_len = len(self.smiles_tokens) - self.train_len
         self.val_len = max(1, int(self.val_pc * self.train_len))
         print("Train_data_len:",self.train_len,"Val_data_len:", self.val_len,"Test_data_len:", self.test_len)
 
     def setup(self, stage=None):
-        """for older versions of pytorch this method needs to be
-        separately called"""
-
+        
         if stage == 'fit' or stage is None:
             bpdata = SmilesDataset(self.smiles_tokens[:self.train_len])
             self.bptrain, self.bpval = \
