@@ -18,6 +18,7 @@ class Featurizer:
                  smarts_labels=None, metal_halogen_encode: bool = True) -> None:
 
         """Parameters
+
         ----------
         input_file: str,
             Path for input file
