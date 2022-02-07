@@ -1,4 +1,3 @@
-
 from random import choice
 from skimage.draw import ellipsoid
 from scipy import ndimage
