@@ -17,18 +17,7 @@ class Featurizer:
     def __init__(self, input_file: str = 'CCCC', file_type: str = 'smi', named_props=None,
                  smarts_labels=None, metal_halogen_encode: bool = True) -> None:
 
-        """Parametersimport numpy as np
-import utils.preprocess as bup
-
-smi  = "CC1=C(/C(O)=C(C#N)/C(NC2=NC=C(S(=O)(C3=CC=CC=C3)=O)C=N2)=O)C=NO1"
-featurizer = bup.Featurizer(smi)
-featurizer.generate_conformer()
-coords = featurizer.get_coords()
-centroid = coords.mean(axis=0)
-coords -= centroid
-afeats = featurizer.atom_features()
-vox = bup.make_3dgrid(coords, afeats, 23, 2)
-vox = np.squeeze(vox, 0).transpose(3, 0, 1, 2)
+        """Parameters
 
         ----------
         input_file: str,
