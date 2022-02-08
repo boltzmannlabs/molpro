@@ -39,11 +39,11 @@ def prepare_dataset(data_path: str, hdf_path: str) -> None:
                                                smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor', 'ring'],
                                                metal_halogen_encode=True)
 
+                prot_coords, prot_features = protein_featurizer.coords, protein_featurizer.features
                 pocket_coords = pocket_featurizer.coords
                 pocket_features = np.ones((len(pocket_coords), 1))
-                prot_coords = protein_featurizer.coords
-                prot_features = protein_featurizer.features
-            except:
+
+            except StopIteration:
                 print('openbabel could not parse file skipping %s' % structure_id)
                 continue
 
