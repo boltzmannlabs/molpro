@@ -18,7 +18,6 @@ class Featurizer:
                  smarts_labels=None, metal_halogen_encode: bool = True) -> None:
 
         """Parameters
-
         ----------
         input_file: str,
             Path for input file
@@ -100,7 +99,7 @@ class Featurizer:
         encoding = np.zeros(NUM_ATOM_CLASSES)
         try:
             encoding[ATOM_CODES[atomic_num]] = 1.0
-        except:
+        except KeyError:
             pass
         return encoding
 
