@@ -36,7 +36,7 @@ class SitePredModel(LightningModule):
         return self.net(x)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.net.parameters())
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
         return optimizer
 
     def training_step(self, batch, batch_idx):
