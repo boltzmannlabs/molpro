@@ -1,88 +1,126 @@
 import torch
+from torch import nn
 from pytorch_lightning import LightningModule, Trainer
-from molpro.models.resnet import ResNet
-from data import ResNetDataModule
+from models.resnet import ResNet
+from data import AffinityPredDataModule
 from argparse import ArgumentParser
 import torchmetrics
-import torch.nn.functional as F
 from pytorch_lightning.callbacks import ModelCheckpoint
 import pytorch_lightning as pl
 
 pl.seed_everything(123)
 
-class ResNetModel(LightningModule):
-    def __init__(self, hyper_parameters):
-        super(ResNetModel, self).__init__()
-        """Lightning module for binding site prediction
+
+class AffinityPredModel(LightningModule):
+    def __init__(self, model_version: str, input_channel: int, output_channel: int, intermediate_channel: int,
+                 learning_rate: float, **kwargs):
+        super(AffinityPredModel, self).__init__()
+        """Lightning module for affinity prediction
             Parameters
             ----------
-            hyper_parameters: argparse.Namespace,
-                Dictionary containing parse parameters
+            model_version: int,
+                Version of resnet to train for affinity prediction
+            input_channel: int,
+                Input features for the 3D grid
+            output_channel: int,
+                Output features for the 3D grid
+            intermediate_channel: int,
+                Intermediate filters in convolution block
+            learning_rate: float,
+                Learning rate for training the model
         """
-        self.save_hyperparameters()
-        self.net = ResNet(64)
-        self.lr = hyper_parameters.lr
-        self.batch_size = hyper_parameters.batch_size
-        self.mse = nn.MSELoss()
-        self.epochs = hyper_parameters.epochs
+        self.save_hyperparameters("input_channel", "output_channel", "intermediate_channel", "learning_rate",
+                                  "model_version")
+        if model_version == 'resnet10':
+            layers = [1, 1, 1, 1]
+        elif model_version == 'resnet18':
+            layers = [2, 2, 2, 2]
+        elif model_version == 'resnet50':
+            layers = [3, 4, 6, 3]
+        elif model_version == 'resnet101':
+            layers = [3, 4, 23, 3]
+        elif model_version == 'resnet152':
+            layers = [3, 8, 36, 3]
+        elif model_version == 'resnet200':
+            layers = [3, 24, 36, 3]
+        else:
+            print('Not a valid model name. Using default model resnet10')
+            layers = [1, 1, 1, 1]
+        self.net = ResNet(input_channel, output_channel, intermediate_channel, layers)
+        self.lr = learning_rate
+        self.criterion = nn.MSELoss()
         self.train_correlation = torchmetrics.R2Score()
         self.val_correlation = torchmetrics.R2Score()
-        self.crossentropy = nn.CrossEntropyLoss()
+        self.test_correlation = torchmetrics.R2Score()
+
+    @staticmethod
+    def add_model_specific_args(parent_parser):
+        parser_model = parent_parser.add_argument_group("SitePredModel")
+        parser_model.add_argument("--model_version", type=str, default='resnet10')
+        parser_model.add_argument("--input_channel", type=int, default=8)
+        parser_model.add_argument("--intermediate_channel", type=int, default=64)
+        parser_model.add_argument("--output_channel", type=int, default=1)
+        parser_model.add_argument("--learning_rate", type=float, default=1e-4)
+        return parent_parser
 
     def forward(self, x):
         return self.net(x)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.net.parameters(),lr = self.lr)
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, 1e-3, epochs=1000, steps_per_epoch=2430)
-        return  [optimizer], [scheduler]
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.lr)
+        return optimizer
 
     def training_step(self, batch, batch_idx):
-        x, y, z = batch
-        pkd_pred, activity_pred = self(x)
-        loss1 = self.mse(pkd_pred, y)
-        loss2 = self.crossentropy(activity_pred,z)
-        loss = loss1 + loss2
-        if torch.isnan(loss) == False:
-            correlation = self.train_correlation(pkd_pred,y)
+        x, y = batch
+        y_pred = self(x)
+        loss = self.criterion(y_pred, y)
+        correlation = self.train_correlation(y_pred, y)
+        if not torch.isnan(loss):
             self.log('train_loss', loss, on_step=True, on_epoch=False, prog_bar=False, logger=True)
             self.log('train_correlation', correlation, on_epoch=False, on_step=True, prog_bar=True, logger=True)
             return loss
         else:
             return None
-        
+
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_pred,_ = self(x)
-        loss = self.mse(y_pred, y)
-        if torch.isnan(loss) == False:
-            correlation = self.val_correlation(y_pred,y)
+        y_pred = self(x)
+        loss = self.criterion(y_pred, y)
+        correlation = self.val_correlation(y_pred, y)
+        if not torch.isnan(loss):
             self.log('val_loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-            self.log('val_correlation', correlation, on_epoch=True, on_step=False, prog_bar=True, logger=True)
-            
-def parser_args():
-    parser = ArgumentParser()
-    parser.add_argument("--lr", type=float, default=1e-5, help="adam: learning rate")
-    parser.add_argument("--batch_size", type=int, default=16, help="batch size")
-    parser.add_argument("--epochs", type=int, default=1000, help="epochs")
-    parser.add_argument("--max_dist", type=int, default=24, help="maximum distance for atoms from the center of grid")
-    parser.add_argument("--grid_resolution", type=int, default=2, help="resolution for the grid")
-    parser.add_argument("--augment", type=bool, default=True, help="perform augmentation of dataset")
-    parser.add_argument("--hdf_path", type=str, default="multitask.hdf",
-                        help="path where dataset is stored")
-    parser.add_argument("--num_workers", type=int, default=8, help="number of workers for pytorch dataloader")
-    parser.add_argument("--pin_memory", type=bool, default=True, help="whether to pin memory for pytorch dataloader")
-    parser.add_argument("--gpus", type=int, default=1, help="number of gpus to be used for training")
-    hparams = parser.parse_args()
-    return hparams
+            self.log('val_correlation', correlation, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        y_pred = self(x)
+        correlation = self.test_correlation(y_pred, y)
+        self.log('test_correlation', correlation, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
 
 if __name__ == '__main__':
-    hparams = parser_args()
-    model = ResNetModel(hparams)
+    parser = ArgumentParser()
+    parser.add_argument("--batch_size", type=int, default=8, help="batch size")
+    parser.add_argument("--max_dist", type=int, default=24, help="maximum distance for atoms from the center of grid")
+    parser.add_argument("--grid_resolution", type=int, default=1, help="resolution for the grid")
+    parser.add_argument("--augment", type=bool, default=True, help="perform augmentation of dataset")
+    parser.add_argument("--hdf_path", type=str, default="data.h5",
+                        help="path where dataset is stored")
+    parser.add_argument("--train_ids_path", type=str, default="sample_data/affinity_pred/splits/train.txt",
+                        help="path where list of train ids is stored")
+    parser.add_argument("--val_ids_path", type=str, default="sample_data/affinity_pred/splits/valid.txt",
+                        help="path where list of validation ids is stored")
+    parser.add_argument("--test_ids_path", type=str, default="sample_data/affinity_pred/splits/test.txt",
+                        help="path where list of test ids is stored")
+    parser.add_argument("--num_workers", type=int, default=8, help="number of workers for pytorch dataloader")
+    parser.add_argument("--pin_memory", type=bool, default=True, help="whether to pin memory for pytorch dataloader")
+    parser = AffinityPredModel.add_model_specific_args(parser)
+    parser = Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
+    model = AffinityPredModel(**vars(args))
     print(model.hparams)
-    data_module = ResNetDataModule(hparams.hdf_path, hparams.max_dist, hparams.grid_resolution,
-                                     'multitask.txt', hparams.augment, hparams.batch_size,
-                                     hparams.num_workers, hparams.pin_memory)
-    checkpoint_callback = ModelCheckpoint(monitor="val_correlation", mode="max")
-    trainer = Trainer(gpus=hparams.gpus, max_epochs=hparams.epochs,callbacks=[checkpoint_callback])
+    data_module = AffinityPredDataModule(args.hdf_path, args.max_dist, args.grid_resolution,
+                                         args.train_ids_path, args.val_ids_path, args.test_ids_path, args.augment,
+                                         args.batch_size, args.num_workers, args.pin_memory)
+    trainer = Trainer.from_argparse_args(args, callbacks=[ModelCheckpoint(monitor='val_correlation', mode='max')])
     trainer.fit(model, data_module)
