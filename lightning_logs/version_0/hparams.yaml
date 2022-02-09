@@ -1,0 +1,30 @@
+hyper_parameters:
+  model_dim: 25
+  random_vec_dim: 10
+  random_vec_std: 1
+  global_transformer: false
+  n_true_confs: 10
+  n_model_confs: 10
+  gnn1:
+    depth: 3
+    n_layers: 2
+  gnn2:
+    depth: 3
+    n_layers: 2
+  encoder:
+    n_head: 2
+  coord_pred:
+    n_layers: 2
+  d_mlp:
+    n_layers: 1
+  h_mol_mlp:
+    n_layers: 1
+  alpha_mlp:
+    n_layers: 2
+  c_mlp:
+    n_layers: 1
+  loss_type: ot_emd
+  teacher_force: false
+  random_alpha: false
+node_features: 74
+edge_features: 4

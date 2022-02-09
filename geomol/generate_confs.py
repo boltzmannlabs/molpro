@@ -21,7 +21,7 @@ def initialize_model(hparams_path,ckpt_path):
 
 conformer_dict = {}
 def generate_conformers(input_smiles:List[str],hparams_path:str=None,ckpt_path :str=None,
-                                 n_conformers:int=10,dataset :str ="drugs",mmff: bool =False):
+                                 n_conformers:int=10,dataset :str ="drugs",mmff: bool =False) -> dict :
 
     """ This function takes INPUT ARGS and returns generated conformers in this format 
     generated_conformers = {"smile_1":[gen_conf_1,gen_conf_2......,gen_conf_n],
@@ -49,11 +49,11 @@ def generate_conformers(input_smiles:List[str],hparams_path:str=None,ckpt_path :
 
     model = initialize_model(hparams_path,ckpt_path)
     for smi in input_smiles:
-        tg_data = featurize_mol_from_smiles(smi, dataset=dataset)
-        if not tg_data:
+        data_obj = featurize_mol_from_smiles(smi, dataset=dataset)
+        if not data_obj:
             print(f'failed to featurize SMILES: {smi}')
             continue
-        data = Batch.from_data_list([tg_data])
+        data = Batch.from_data_list([data_obj])
         n_atoms = data.x.size(0)
         model_coords = model.prediction(data,n_confs= 10)
         mols = []

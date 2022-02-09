@@ -85,10 +85,10 @@ class SmilesDataset(Dataset):
         smiles_token = self.smiles_tokens[idx]
         featurizer = bup.Featurizer(smiles_token)
         featurizer.generate_conformer()
-        coords = featurizer.get_coords()
+        coords = featurizer.coords
         centroid = coords.mean(axis=0)
         coords -= centroid
-        afeats = featurizer.atom_features()
+        afeats = featurizer.features
         vox = bup.make_3dgrid(coords, afeats, 23, 2)
         vox = np.squeeze(vox, 0).transpose(3, 0, 1, 2)
         mol = Chem.MolFromSmiles(smiles_token)
@@ -109,7 +109,6 @@ class SmilesDataset(Dataset):
                                     x not in vocab_c2i_v1]),
                          sstring)))
         end_token = vals.index(2)
-        # vox = torch.rand(8, 24, 24, 24)
         return torch.Tensor(vox), torch.Tensor(vals), end_token + 1
 
 
