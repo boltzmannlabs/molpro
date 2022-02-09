@@ -1,11 +1,7 @@
 import torch
 from models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
 from model import BpModule
-import utils.preprocess as bup
-import numpy as np
-import rdkit
-from rdkit import Chem
-from shape_based_generation.data import vocab_c2i_v1
+
 
 encoder = ShapeEncoder(9)
 decoder = DecoderRNN(512, 1024, 29, 1,"cpu")
