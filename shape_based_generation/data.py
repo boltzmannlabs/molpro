@@ -109,7 +109,6 @@ class SmilesDataset(Dataset):
                                     x not in vocab_c2i_v1]),
                          sstring)))
         end_token = vals.index(2)
-        # vox = torch.rand(8, 24, 24, 24)
         return torch.Tensor(vox), torch.Tensor(vals), end_token + 1
 
 
