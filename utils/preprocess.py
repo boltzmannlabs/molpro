@@ -1,19 +1,21 @@
-
-from rdkit import Chem
-from rdkit.Chem import AllChem
+import openbabel
+from openbabel import pybel
 import numpy as np
 import torch
 from torch.nn.utils.rnn import pad_packed_sequence, pack_sequence
-from typing import List, Tuple
-from math import sin, cos, sqrt
+from typing import List, Union
+from math import sin, cos, sqrt, pi
+from itertools import combinations
+
+pybel.ob.obErrorLog.SetOutputLevel(0)
 
 
 class Featurizer:
     """Calculates atomic features for molecules. Features can encode atom type,
-    native rdkit properties and SMARTS strings"""
+    native openbabel properties and SMARTS strings"""
 
-    def __init__(self, input_file: str, file_type :str= "smi", one_hot_metal: bool=False,
-                 one_hot_halogen: bool=False, use_ring_size: bool=True, use_smarts: bool=True, use_gasteiger: bool=True) -> None:
+    def __init__(self, input_file: str = 'CCCC', file_type: str = 'smi', named_props=None,
+                 smarts_labels=None, metal_halogen_encode: bool = True) -> None:
 
         """Parameters
         ----------
@@ -21,47 +23,50 @@ class Featurizer:
             Path for input file
         file_type: str,
             Define input file type
-        one_hot_metal: bool,
-            Whether to one hot encode metal features
-        one_hot_halogen: bool
-            Whether to one hot encode halogen features
-        use_ring_size: bool,
-            Whether to use ring size as a feature
-        use_smarts: bool,
-            Whether to use encode SMARTS strings as a feature
+        named_props: List[str],
+            Extract atom properties given a list of available properties. The available properties are
+            'atomicmass', 'atomicnum', 'exactmass', 'formalcharge', 'heavydegree', 'heterodegree',
+            'hyb', 'implicitvalence', 'isotope', 'partialcharge', 'spin' and 'degree'.
+        smarts_labels: List[str],
+            Extract patterns in molecule given the smarts strings. The available patterns are 'hydrophobic', 'aromatic',
+            'acceptor', 'donor' and 'ring'.
         """
 
+        self.mol = None
+        self.coords = None
+        self.features = None
         self.input_file = input_file
         self.file_type = file_type
-        self.one_hot_metal = one_hot_metal
-        self.one_hot_halogen = one_hot_halogen
-        self.use_ring_size = use_ring_size
-        self.use_smarts = use_smarts
-        self.use_gasteiger = use_gasteiger
-        self.mol = self.parse_file()
+        self.named_props = named_props
+        self.smarts_labels = smarts_labels
+        self.metal_halogen_encode = metal_halogen_encode
+        self.parse_file()
+        if self.file_type == 'smi':
+            self.generate_conformer()
+        self.get_coords()
+        self.atom_features()
 
-    def parse_file(self) -> Chem.rdchem.Mol:
+    def parse_file(self) -> None:
         """Parse the input file according to file type specified"""
         if self.file_type == 'smi':
-            molecule = Chem.MolFromSmiles(self.input_file)
-        if self.file_type == 'pdb':
-            molecule = Chem.MolFromPDBFile(self.input_file)
-        if self.file_type == 'mol2':
-            molecule = Chem.MolFromMol2File(self.input_file)
-        return molecule
+            self.mol = pybel.readstring('smi', self.input_file)
+        else:
+            self.mol = next(pybel.readfile(self.file_type, self.input_file))
 
-    def get_coords(self) -> np.ndarray:
+    def get_coords(self) -> None:
         """Get 3d cartesian coordinates for input file"""
-        for conformer in self.mol.GetConformers():
-            coords = conformer.GetPositions()
-        return coords
+        coords = []
+        for a in self.mol.atoms:
+            if a.atomicnum > 1:
+                coords.append(a.coords)
+        self.coords = np.array(coords)
 
     def generate_conformer(self) -> None:
-        self.mol = Chem.AddHs(self.mol)
-        AllChem.EmbedMolecule(self.mol)
-        AllChem.MMFFOptimizeMolecule(self.mol)
+        self.mol.make3D()
+        self.mol.localopt()
 
-    def encode_num(self, atomic_num: int) -> np.ndarray:
+    @staticmethod
+    def encode_num(atomic_num: int) -> np.ndarray:
         """Encode metal and halogen features based on atomic number
             Parameters
             ----------
@@ -70,158 +75,83 @@ class Featurizer:
         """
 
         ATOM_CODES = {}
-        metals = ([3, 4, 11, 12, 13] + list(range(19, 32)) + list(range(37, 51)) + list(range(55, 84)) +
-                  list(range(87, 104)))
-        halogen = [9, 17, 35, 53]
-        atom_classes = [5, 6, 7, 8, 15, 16, 32, halogen, metals]
-        if not self.one_hot_metal and not self.one_hot_halogen:
-            for code, atom in enumerate(atom_classes):
-                if type(atom) is list:
-                    for a in atom:
-                        ATOM_CODES[a] = code
-                else:
-                    ATOM_CODES[atom] = code
-            NUM_ATOM_CLASSES = len(atom_classes)
-            encoding = np.zeros(NUM_ATOM_CLASSES)
-            try:
-                encoding[ATOM_CODES[atomic_num]] = 1.0
-            except:
-                pass
-            return encoding
-        if self.one_hot_metal and self.one_hot_halogen:
-            atom_classes = [5, 6, 7, 8, 15, 16, 32, *halogen, *metals]
-            for code, atom in enumerate(atom_classes):
+        metals = ([3, 4, 11, 12, 13] + list(range(19, 32))
+                  + list(range(37, 51)) + list(range(55, 84))
+                  + list(range(87, 104)))
+        atom_classes = [
+            (5, 'B'),
+            (6, 'C'),
+            (7, 'N'),
+            (8, 'O'),
+            (15, 'P'),
+            (16, 'S'),
+            (34, 'Se'),
+            ([9, 17, 35, 53], 'halogen'),
+            (metals, 'metal')
+        ]
+        for code, (atom, name) in enumerate(atom_classes):
+            if type(atom) is list:
+                for a in atom:
+                    ATOM_CODES[a] = code
+            else:
                 ATOM_CODES[atom] = code
-            NUM_ATOM_CLASSES = len(atom_classes)
-            encoding = np.zeros(NUM_ATOM_CLASSES)
-            try:
-                encoding[ATOM_CODES[atomic_num]] = 1.0
-            except:
-                pass
-            return encoding
-
-    @staticmethod
-    def hybridization(atom_object: Chem.rdchem.Atom) -> np.ndarray:
-        """Calculate hybridization state for atom
-            Parameters
-            ----------
-            atom_object: Chem.rdchem.Atom,
-                Rdkit atom object
-        """
-
-        hybridization_dict = {'SP': 0, 'SP2': 1, 'SP3': 2, 'SP3D': 3, 'SP3D2': 4, 'UNSPECIFIED': 5}
-        NUM_HYBRID_CLASSES = len(hybridization_dict)
-        encoding = np.zeros(NUM_HYBRID_CLASSES)
+        NUM_ATOM_CLASSES = len(atom_classes)
+        encoding = np.zeros(NUM_ATOM_CLASSES)
         try:
-            encoding[hybridization_dict[str(atom_object.GetHybridization())]] = 1.0
+            encoding[ATOM_CODES[atomic_num]] = 1.0
         except KeyError:
-            encoding[5] = 1.0
+            pass
         return encoding
 
-    @staticmethod
-    def named_prop(atom_object: Chem.rdchem.Atom) -> List[int]:
+    def named_prop(self, atom: openbabel.pybel.Atom) -> np.ndarray:
         """Calculate native rdkit features
             Parameters
             ----------
-            atom_object: Chem.rdchem.Atom,
-                Rdkit atom object
+            atom: openbabel.pybel.Atom,
+                openbabel atom object
         """
-
-        properties = [atom_object.GetAtomicNum(), atom_object.GetDegree(),
-                      atom_object.GetFormalCharge(), atom_object.GetTotalNumHs(), atom_object.GetImplicitValence(),
-                      atom_object.GetNumRadicalElectrons(), int(atom_object.GetIsAromatic())]
-        return properties
-
-
-
-    @staticmethod
-    def cip_rank(atom_object: Chem.rdchem.Atom) -> np.ndarray:
-        """Calculate cip rank for atom
-            Parameters
-            ----------
-            atom_object: Chem.rdchem.Atom,
-                Rdkit atom object
-        """
-
-        cip_dict = {'R': 0, 'S': 1}
-        rank = np.zeros(3)
-        try:
-            rank[cip_dict[atom_object.GetProp('_CIPCode')]] = 1
-        except:
-            rank[2] = 1
-        return rank
-
-    def compute_gasteiger_charge(self) -> None:
-        AllChem.ComputeGasteigerCharges(self.mol)
-
-    @staticmethod
-    def ring_size(atom_object: Chem.rdchem.Atom, rings: Tuple[int, ...]) -> np.ndarray:
-        """Calculate ring size for atom
-            Parameters
-            ----------
-            atom_object: Chem.rdchem.Atom,
-                Rdkit atom object
-            rings: Tuple[int, ...],
-                tuple containing index of all ring atoms,
-        """
-
-        one_hot = np.zeros(6)
-        aid = atom_object.GetIdx()
-        for ring in rings:
-            if aid in ring and len(ring) <= 8:
-                one_hot[len(ring) - 3] += 1
-        return one_hot
+        prop = [atom.__getattribute__(prop) for prop in self.named_props]
+        return np.asarray(prop)
 
     def smart_feats(self) -> np.ndarray:
         """Find hydrophobic, hydrogen bond donor and acceptor atoms using SMARTS strings"""
-        PATTERNS = []
-        SMARTS = [
-            '[#6+0!$(*~[#7,#8,F]),SH0+0v2,s+0,S^3,Cl+0,Br+0,I+0]',
-            '[!$([#1,#6,F,Cl,Br,I,o,s,nX3,#7v5,#15v5,#16v4,#16v6,*+1,*+2,*+3])]',
-            '[!$([#6,H0,-,-2,-3]),$([!H0;#7,#8,#9])]'
-        ]
+        __PATTERNS = []
+        smarts_dict = {'hydrophobic': '[#6+0!$(*~[#7,#8,F]),SH0+0v2,s+0,S^3,Cl+0,Br+0,I+0]', 'aromatic': '[a]',
+                       'acceptor': '[!$([#1,#6,F,Cl,Br,I,o,s,nX3,#7v5,#15v5,#16v4,#16v6,*+1,*+2,*+3])]',
+                       'donor': '[!$([#6,H0,-,-2,-3]),$([!H0;#7,#8,#9])]', 'ring': '[r]'}
+        SMARTS = []
+        for label in self.smarts_labels:
+            SMARTS.append(smarts_dict[label])
+
         for smarts in SMARTS:
-            PATTERNS.append(Chem.MolFromSmarts(smarts))
+            __PATTERNS.append(pybel.Smarts(smarts))
+        features = np.zeros((len(self.mol.atoms), len(__PATTERNS)))
 
-        features = np.zeros((self.mol.GetNumAtoms(), len(PATTERNS)))
-
-        for (pattern_id, pattern) in enumerate(PATTERNS):
-            atoms_with_prop = np.array(list(*zip(*self.mol.GetSubstructMatches(pattern))),
+        for (pattern_id, pattern) in enumerate(__PATTERNS):
+            atoms_with_prop = np.array(list(*zip(*pattern.findall(self.mol))),
                                        dtype=int) - 1
             features[atoms_with_prop, pattern_id] = 1.0
         return features
 
-    def atom_features(self) -> np.ndarray:
-        """Generate atom features from rdkit mol object"""
+    def atom_features(self) -> None:
+        """Generate atom features from openbabel mol object"""
 
-        n = self.mol.GetNumAtoms()
         features = []
-        if self.use_gasteiger:
-            self.compute_gasteiger_charge()
-        for j in range(n):
-            atom_object = self.mol.GetAtomWithIdx(j)
-            atomic_num = atom_object.GetAtomicNum()
-            atom_features = np.concatenate((self.encode_num(atomic_num), self.named_prop(atom_object),
-                                            self.hybridization(atom_object), self.cip_rank(atom_object)))
-            if self.use_ring_size:
-                ri = self.mol.GetRingInfo()
-                rings = ri.AtomRings()
-                atom_features = np.concatenate((atom_features, self.ring_size(atom_object, rings)))
-            if self.use_gasteiger:
-                atom_features = np.concatenate((atom_features,
-                                                np.asarray(atom_object.GetDoubleProp("_GasteigerCharge")).reshape(1)))
-
-            features.append(atom_features)
-        if self.use_smarts:
-            features = np.hstack([features, self.smart_feats()])
+        heavy_atoms = []
+        if self.metal_halogen_encode or self.named_props is not None:
+            for i, atom in enumerate(self.mol.atoms):
+                atom_features = []
+                if atom.atomicnum > 1:
+                    heavy_atoms.append(i)
+                    if self.metal_halogen_encode:
+                        atom_features.append(self.encode_num(atom.atomicnum))
+                    if self.named_props is not None:
+                        atom_features.append(self.named_prop(atom))
+                    features.append(np.concatenate(atom_features))
+        if self.smarts_labels is not None:
+            self.features = np.hstack([features, self.smart_feats()[heavy_atoms]])
         else:
-            features = np.hstack([features])
-        return features
-
-    @staticmethod
-    def bond_features(self) -> None:
-        """generate bond features from mol object"""
-        return None
+            self.features = np.hstack([features])
 
 
 class Tokenizer:
@@ -312,32 +242,32 @@ class Tokenizer:
         return padded_sequences
 
 
-def rotation_matrix(axis: np.ndarray, theta: int) -> np.ndarray:
+def rotation_matrix(axis_rotate:  Union[List[int], np.ndarray], theta_rotate: Union[int, float]) -> np.ndarray:
     """Create a rotation matrix for a given axis by theta radians
         Parameters
         ----------
-        axis: np.ndarray,
+        axis_rotate: np.ndarray,
             axis to rotate the 3d grid
-        theta: int,
+        theta_rotate: int,
             angle to rotate the grid
     """
 
-    if not isinstance(axis, (np.ndarray, list, tuple)):
+    if not isinstance(axis_rotate, (np.ndarray, list, tuple)):
         raise TypeError('axis must be an array of floats of shape (3,)')
     try:
-        axis = np.asarray(axis, dtype=np.float)
+        axis_rotate = np.asarray(axis_rotate, dtype=np.float)
     except ValueError:
         raise ValueError('axis must be an array of floats of shape (3,)')
 
-    if axis.shape != (3,):
+    if axis_rotate.shape != (3,):
         raise ValueError('axis must be an array of floats of shape (3,)')
 
-    if not isinstance(theta, (float, int)):
+    if not isinstance(theta_rotate, (float, int)):
         raise TypeError('theta must be a float')
 
-    axis = axis / sqrt(np.dot(axis, axis))
-    a = cos(theta / 2.0)
-    b, c, d = -axis * sin(theta / 2.0)
+    axis_rotate = axis_rotate / sqrt(np.dot(axis_rotate, axis_rotate))
+    a = cos(theta_rotate / 2.0)
+    b, c, d = -axis_rotate * sin(theta_rotate / 2.0)
     aa, bb, cc, dd = a * a, b * b, c * c, d * d
     bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
     return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
@@ -345,23 +275,35 @@ def rotation_matrix(axis: np.ndarray, theta: int) -> np.ndarray:
                      [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
 
-def rotate_grid(coords: np.ndarray, center: Tuple[int, int, int], axis: np.ndarray, theta: int) -> np.ndarray:
-    """Rotate a selection of atoms by a given rotation around a center
-        Parameters
-        ----------
-        coords: np.ndarray, shape (N, 3)
-            Arrays with coordinates for each atoms.
-        center: tuple, optional
-            Center to rotate the 3d grid
-        axis: np.ndarray,
-            axis to rotate the 3d grid
-        theta: int,
-            angle to rotate the grid
-    """
-    rotMat = rotation_matrix(axis, theta)
-    new_coords = coords - center
-    rotated_coords = np.dot(new_coords, np.transpose(rotMat)) + center
-    return rotated_coords
+ROTATIONS = [rotation_matrix([1, 1, 1], 0)]
+for a1 in range(3):
+    for t in range(1, 4):
+        axis = np.zeros(3)
+        axis[a1] = 1
+        theta = t * pi / 2.0
+        ROTATIONS.append(rotation_matrix(axis, theta))
+
+for (a1, a2) in combinations(range(3), 2):
+    axis = np.zeros(3)
+    axis[[a1, a2]] = 1.0
+    theta = pi
+    ROTATIONS.append(rotation_matrix(axis, theta))
+    axis[a2] = -1.0
+    ROTATIONS.append(rotation_matrix(axis, theta))
+
+for t in [1, 2]:
+    theta = t * 2 * pi / 3
+    axis = np.ones(3)
+    ROTATIONS.append(rotation_matrix(axis, theta))
+    for a1 in range(3):
+        axis = np.ones(3)
+        axis[a1] = -1
+        ROTATIONS.append(rotation_matrix(axis, theta))
+
+
+def rotate_grid(coords, rotation):
+    global ROTATIONS
+    return np.dot(coords, ROTATIONS[rotation])
 
 
 def make_3dgrid(coords: np.ndarray, features: np.ndarray, max_dist: int, grid_resolution: int) -> np.ndarray:
@@ -370,7 +312,7 @@ def make_3dgrid(coords: np.ndarray, features: np.ndarray, max_dist: int, grid_re
         Parameters
         ----------
         coords, features: array-likes, shape (N, 3) and (N, F)
-            Arrays with coordinates and features for each atoms.
+            Arrays with coordinates and features for each atom.
         grid_resolution: float, optional
             Resolution of a grid (in Angstroms).
         max_dist: float, optional
@@ -379,8 +321,8 @@ def make_3dgrid(coords: np.ndarray, features: np.ndarray, max_dist: int, grid_re
             included.
     """
 
-    coords = np.asarray(coords, dtype=np.float)
-    features = np.asarray(features, dtype=np.float)
+    coords = np.asarray(coords, dtype=float)
+    features = np.asarray(features, dtype=float)
     f_shape = features.shape
     num_features = f_shape[1]
     max_dist = float(max_dist)
@@ -395,5 +337,4 @@ def make_3dgrid(coords: np.ndarray, features: np.ndarray, max_dist: int, grid_re
     grid = np.zeros((1, box_size, box_size, box_size, num_features), dtype=np.float32)
     for (x, y, z), f in zip(grid_coords[in_box], features[in_box]):
         grid[0, x, y, z] += f
-
     return grid

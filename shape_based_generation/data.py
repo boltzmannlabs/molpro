@@ -173,7 +173,6 @@ class BpDataModule(pl.LightningDataModule):
                           collate_fn=custom_collate, num_workers=self.nworkers)
 
     def test_dataloader(self):
-        #print("model in test_dataloader")
         return DataLoader(self.bptest, batch_size=self.batch_size,
                           collate_fn=custom_collate, num_workers=self.nworkers)
 
