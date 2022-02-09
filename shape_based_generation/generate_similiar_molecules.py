@@ -24,7 +24,7 @@ def unique_canonical(smiles):
 
 def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
                                n_attempts :int= 20 , sample_prob :bool= False
-                               ,unique_valid :bool= False):
+                               ,unique_valid :bool= False) -> dict:
     """ This function takes INPUT ARGS and returns generated smiles in this format 
     generated_smiles = {"smile_1":[gen_smi_1,gen_smi_2......,gen_smi_n],
                         "smile_2":[gen_smi_1,gen_smi_2......,gen_smi_n],
