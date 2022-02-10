@@ -1,23 +1,21 @@
-
-from random import choice
-from skimage.draw import ellipsoid
-from scipy import ndimage
-import numpy as np
-import torch
-import h5py
-from molpro.utils.preprocess import Featurizer
-from torch.utils.data import Dataset, DataLoader
-from pytorch_lightning import LightningDataModule
 import os
-from typing import Tuple, Dict, List
-from tqdm.auto import tqdm
 from argparse import ArgumentParser
-import torch.nn.functional as F
-from math import sin, cos, sqrt, pi
-from itertools import combinations
+from random import choice
+from typing import Tuple
+import h5py
+import numpy as np
+import pandas as pd
+import torch
+from pytorch_lightning import LightningDataModule
+from scipy import ndimage
+from skimage.draw import ellipsoid
+from torch.utils.data import Dataset, DataLoader
+from tqdm.auto import tqdm
+
+from molpro.utils.preprocess import rotate_grid, make_3dgrid, Featurizer
 
 
-def prepare_gan_dataset(data_path: str, hdf_path: str, smiles_dict: Dict[str,List[str]]) -> None:
+def prepare_dataset(data_path: str, hdf_path: str, df_path: str) -> None:
     """Prepare a HDF5 grouped dataset for I/O from mol2 files
 
         Parameters
@@ -26,109 +24,43 @@ def prepare_gan_dataset(data_path: str, hdf_path: str, smiles_dict: Dict[str,Lis
             Path containing mol2 files
         hdf_path: str,
             Path to save the HDF5 file
-        smiles_dict: Dict[str, int],
-           Smiles strings with keys containing pdb_ids
+        df_path: str,
+           Path to csv file containing pdb ids and associated smiles
     """
-
-    ids = os.listdir(data_path)
+    df = pd.read_csv(df_path)
+    ids = df['pdb']
+    ligand_path = df['ligand_path']
 
     with h5py.File(hdf_path, mode='w') as f:
-        for structure_id in tqdm(ids):
+        for i, structure_id in enumerate(tqdm(ids)):
             try:
-                protein_featurizer = Featurizer(os.path.join(data_path, structure_id, 'protein.mol2'), 'mol2', False,
-                                                False, True, True, True)
-                prot_coords = protein_featurizer.get_coords()
-                prot_features = protein_featurizer.atom_features()
-                centroid = prot_coords.mean(axis=0)
-                prot_coords -= centroid
-
-                smiles_list = smiles_dict[structure_id]
-                for j in range(len(smiles_list)):
-                    ligand_featurizer = Featurizer(smiles_list[j], 'smi', False, False, True, True, False)
-                    ligand_featurizer.generate_conformer()
-                    ligand_coords = ligand_featurizer.get_coords()
-                    ligand_coords -= centroid
-                    ligand_features = ligand_featurizer.atom_features()
-
-                    group_id = structure_id + '_' + smiles_list[j]
-                    group = f.create_group(group_id)
-                    for key, data in (('prot_coords', prot_coords),
-                                      ('prot_features', prot_features),
-                                      ('ligand_coords', ligand_coords),
-                                      ('ligand_features', ligand_features),
-                                      ('centroid', centroid)):
-                        group.create_dataset(key, data=data, shape=data.shape, dtype='float32', compression='lzf')
-            except:
-                print('Rdkit could not parse file skipping %s' % structure_id)
+                protein_featurizer = Featurizer(os.path.join(data_path, structure_id, 'site.pdb'),
+                                                'pdb', named_props=['partialcharge', 'heavydegree'],
+                                                smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor', 'ring'],
+                                                metal_halogen_encode=False)
+                ligand_featurizer = Featurizer(os.path.join(data_path, structure_id, '%s' % ligand_path[i]),
+                                               'mol2', named_props=['heavydegree'],
+                                               smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor'],
+                                               metal_halogen_encode=False)
+                prot_coords, prot_features = protein_featurizer.coords, protein_featurizer.features
+                ligand_coords, ligand_features = ligand_featurizer.coords, ligand_featurizer.features
+            except StopIteration:
+                print('openbabel could not parse file skipping %s' % structure_id)
                 continue
-                
 
-def rotation_matrix(axis, theta):        
-    axis = np.asarray(axis, dtype=np.float)
-    axis = axis / sqrt(np.dot(axis, axis))
-    a = cos(theta / 2.0)
-    b, c, d = -axis * sin(theta / 2.0)
-    aa, bb, cc, dd = a * a, b * b, c * c, d * d
-    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
-    return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
-                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
-                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
-
-ROTATIONS = [rotation_matrix([1, 1, 1], 0)]
-
-for a1 in range(3):
-    for t in range(1, 4):
-        axis = np.zeros(3)
-        axis[a1] = 1
-        theta = t * pi / 2.0
-        ROTATIONS.append(rotation_matrix(axis, theta))
-
-for (a1, a2) in combinations(range(3), 2):
-    axis = np.zeros(3)
-    axis[[a1, a2]] = 1.0
-    theta = pi
-    ROTATIONS.append(rotation_matrix(axis, theta))
-    axis[a2] = -1.0
-    ROTATIONS.append(rotation_matrix(axis, theta))
-
-for t in [1, 2]:
-    theta = t * 2 * pi / 3
-    axis = np.ones(3)
-    ROTATIONS.append(rotation_matrix(axis, theta))
-    for a1 in range(3):
-        axis = np.ones(3)
-        axis[a1] = -1
-        ROTATIONS.append(rotation_matrix(axis, theta))
-
-def make_grid(coords, features, grid_resolution=1.0, max_dist=10.0):
-
-        coords = np.asarray(coords, dtype=np.float)
-        features = np.asarray(features, dtype=np.float)
-        f_shape = features.shape
-        num_features = f_shape[1]
-        max_dist = float(max_dist)
-        grid_resolution = float(grid_resolution)
-
-        box_size = int(np.ceil(2 * max_dist / grid_resolution + 1))
+            centroid = prot_coords.mean(axis=0)
+            prot_coords -= centroid
+            ligand_coords -= centroid
+            group = f.create_group(structure_id)
+            for key, data in (('prot_coords', prot_coords),
+                              ('prot_features', prot_features),
+                              ('ligand_coords', ligand_coords),
+                              ('ligand_features', ligand_features),
+                              ('centroid', centroid)):
+                group.create_dataset(key, data=data, shape=data.shape, dtype='float32', compression='lzf')
 
 
-        grid_coords = (coords + max_dist) / grid_resolution
-        grid_coords = grid_coords.round().astype(int)
-
-
-        in_box = ((grid_coords >= 0) & (grid_coords < box_size)).all(axis=1)
-        grid = np.zeros((1, box_size, box_size, box_size, num_features),dtype = np.float32)
-        for (x, y, z), f in zip(grid_coords[in_box], features[in_box]):
-            grid[0, x, y, z] += f
-
-        return grid
-
-def rotate(coords, rotation):
-        global ROTATIONS
-        return np.dot(coords, ROTATIONS[rotation])                
-
-
-class BicycleGANDataset(Dataset):
+class SiteGenDataset(Dataset):
 
     def __init__(self, hdf_path: str, max_dist: int, grid_resolution: int, id_file_path: str, augment: bool) -> None:
         """Pytorch dataset class for preparing 3d grid and labels
@@ -166,54 +98,68 @@ class BicycleGANDataset(Dataset):
             self.data_handle = h5py.File(self.hdf_path, 'r')
         if torch.is_tensor(idx):
             idx = idx.tolist()
-        pdbid = self.ids[idx]
+        pdb_id = self.ids[idx]
         if self.transform:
             rot = choice(range(24))
             tr = 5 * np.random.rand(1, 3)
         else:
             rot = 0
-            tr = (0,0,0)
-        rec_grid, pocket_dens = self.prepare_complex(pdbid,rotation = rot,translation = tr)
+            tr = (0, 0, 0)
+        rec_grid, lig_grid = self.prepare_complex(pdb_id, rotation=rot, translation=tr)
 
-        return rec_grid, pocket_dens
-    
-    def prepare_complex(self,pdbid,rotation=0, translation=(0, 0, 0),vmin=0, vmax=1):
-        
-        prot_coords = self.data_handle[pdbid]['prot_coords'][:]
-        poc_coords = self.data_handle[pdbid]['ligand_coords'][:]
-        poc_features = self.data_handle[pdbid]['ligand_features'][:]
-        prot_features = self.data_handle[pdbid]['prot_features'][:]
-        prot_coords = rotate(prot_coords,rotation)
+        return rec_grid, lig_grid
+
+    def prepare_complex(self, pdb_id: str, rotation: int = 0,
+                        translation: Tuple[int, int, int] = (0, 0, 0), v_min: int = 0,
+                        v_max: int = 1) -> Tuple[np.ndarray, np.ndarray]:
+        """Transform coordinates and features to 3d probability density grid
+            Parameters
+            ----------
+            pdb_id: str,
+                PDB ID of complex to transform
+            translation: tuple,
+                distance for translation of 3d grid
+            rotation: int,
+                rotation integer that corresponds to certain axis and theta
+            v_min: int,
+                minimum density in the grid
+            v_max: int,
+                maximum density in the grid
+        """
+
+        prot_coords = self.data_handle[pdb_id]['prot_coords'][:]
+        ligand_coords = self.data_handle[pdb_id]['ligand_coords'][:]
+        ligand_features = self.data_handle[pdb_id]['ligand_features'][:]
+        prot_features = self.data_handle[pdb_id]['prot_features'][:]
+        prot_coords = rotate_grid(prot_coords, rotation)
         prot_coords += translation
-        poc_coords = rotate(poc_coords,rotation)
-        poc_coords += translation
+        ligand_coords = rotate_grid(ligand_coords, rotation)
+        ligand_coords += translation
         footprint = ellipsoid(2, 2, 2)
         footprint = footprint.reshape((1, *footprint.shape, 1))
-        rec_grid = make_grid(prot_coords,prot_features ,
-                                            max_dist=self.max_dist,
-                                            grid_resolution=self.grid_resolution)
-        pocket_dens = make_grid(poc_coords,poc_features,
-                                      max_dist=self.max_dist)
-        margin = ndimage.maximum_filter(pocket_dens,footprint=footprint)
-        pocket_dens += margin
-        pocket_dens = pocket_dens.clip(vmin, vmax)
+        rec_grid = make_3dgrid(prot_coords, prot_features, max_dist=self.max_dist,
+                               grid_resolution=self.grid_resolution)
+        lig_grid = make_3dgrid(ligand_coords, ligand_features, max_dist=self.max_dist,
+                               grid_resolution=1)
+        margin = ndimage.maximum_filter(lig_grid, footprint=footprint)
+        lig_grid += margin
+        lig_grid = lig_grid.clip(v_min, v_max)
 
-        zoom = rec_grid.shape[1] / pocket_dens.shape[1]
-        pocket_dens = np.stack([ndimage.zoom(pocket_dens[0, ..., i],
-                                                 zoom)
-                                    for i in range(poc_features.shape[1])], -1)
+        zoom = rec_grid.shape[1] / lig_grid.shape[1]
+        lig_grid = np.stack([ndimage.zoom(lig_grid[0, ..., i],
+                                          zoom)
+                             for i in range(ligand_features.shape[1])], -1)
         rec_grid = np.squeeze(rec_grid)
-        rec_grid = rec_grid.transpose(3,0,1,2)
-        pocket_dens = pocket_dens.transpose(3,0,1,2)
-        return rec_grid, pocket_dens
+        rec_grid = rec_grid.transpose((3, 0, 1, 2))
+        lig_grid = lig_grid.transpose((3, 0, 1, 2))
+        return rec_grid, lig_grid
 
 
-class BicycleGANDataModule(LightningDataModule):
+class SiteGenDataModule(LightningDataModule):
 
-    def __init__(self, hdf_path: str, max_dist: int, grid_resolution: int, train_ids_path: str, 
-                 augment: bool, batch_size: int, num_workers: int, pin_memory: bool):
+    def __init__(self, hdf_path: str, max_dist: int, grid_resolution: int, train_ids_path: str, valid_ids_path: str,
+                 test_ids_path: str, augment: bool, batch_size: int, num_workers: int, pin_memory: bool):
         super().__init__()
-
         """Pytorch lightning datamodule for preparing train, validation and test dataloader
             Parameters
             ----------
@@ -246,24 +192,23 @@ class BicycleGANDataModule(LightningDataModule):
         self.grid_resolution = grid_resolution
         self.hdf_path = hdf_path
         self.train_ids_path = train_ids_path
+        self.valid_ids_path = valid_ids_path
+        self.test_ids_path = test_ids_path
         self.num_workers = num_workers
         self.pin_memory = pin_memory
         self.batch_size = batch_size
-
-    def prepare_data(self, *args, **kwargs):
-        pass
+        self.test_dataset = None
+        self.valid_dataset = None
+        self.train_dataset = None
 
     def setup(self, **kwargs):
         """define train, test and validation datasets """
-        self.train_dataset = BicycleGANDataset(self.hdf_path, self.max_dist, self.grid_resolution,
-                                           self.train_ids_path, self.transform)
-    
-    def my_collate(self,batch):
-        data = [item[0] for item in batch]
-        target = [item[1] for item in batch]
-        target = torch.FloatTensor(target)
-        data = torch.FloatTensor(data)
-        return F.normalize(data), F.normalize(target)
+        self.train_dataset = SiteGenDataset(self.hdf_path, self.max_dist, self.grid_resolution,
+                                            self.train_ids_path, self.transform)
+        self.valid_dataset = SiteGenDataset(self.hdf_path, self.max_dist, self.grid_resolution,
+                                            self.valid_ids_path, False)
+        self.test_dataset = SiteGenDataset(self.hdf_path, self.max_dist, self.grid_resolution,
+                                           self.test_ids_path, False)
 
     def train_dataloader(self):
         """returns train dataloader"""
@@ -271,17 +216,31 @@ class BicycleGANDataModule(LightningDataModule):
                             num_workers=self.num_workers, pin_memory=self.pin_memory)
         return loader
 
+    def val_dataloader(self):
+        """returns val dataloader"""
+        loader = DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False,
+                            num_workers=self.num_workers, pin_memory=self.pin_memory)
+        return loader
+
+    def test_dataloader(self):
+        """returns test dataloader"""
+        loader = DataLoader(self.test_dataset, batch_size=1, shuffle=False,
+                            num_workers=self.num_workers, pin_memory=self.pin_memory)
+        return loader
+
 
 def parser_args():
     parser = ArgumentParser()
-    parser.add_argument("--data_path", type=str, default="data", help="path where mol2 files are stored")
+    parser.add_argument("--data_path", type=str, default="sample_data/affinity_pred/data",
+                        help="path where pdb and mol2 files are stored")
     parser.add_argument("--hdf_path", type=str, default="data.h5",
                         help="path where dataset is stored")
-    hparams = parser.parse_args()
-    return hparams
+    parser.add_argument("--df_path", type=str, default="sample_data/affinity_pred/splits/pdbbind.csv",
+                        help="path to csv file containing pdb ids and associated smiles")
+    params = parser.parse_args()
+    return params
 
 
 if __name__ == '__main__':
     hparams = parser_args()
-    smiles = {'4wno': '"C1CC2=C3C(=CC=C2)C(=CN3C1)[C@H]4[C@@H](C(=O)NC4=O)C5=CNC6=CC=CC=C65"'}
-    prepare_gan_dataset(hparams.data_path, hparams.hdf_path, smiles)
+    prepare_dataset(hparams.data_path, hparams.hdf_path, hparams.df_path)
