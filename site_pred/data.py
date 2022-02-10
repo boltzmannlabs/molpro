@@ -4,7 +4,7 @@ from scipy import ndimage
 import numpy as np
 import torch
 import h5py
-from utils.preprocess import make_3dgrid, Featurizer, rotate_grid
+from molpro.utils.preprocess import make_3dgrid, Featurizer, rotate_grid
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningDataModule
 import os
