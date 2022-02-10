@@ -1,4 +1,3 @@
-
 import torch
 from torch import nn
 
@@ -9,7 +8,7 @@ class ConvBlock(nn.Module):
         layers = []
 
         # Convolution Layer
-        layers += [nn.Conv3d(in_dim, out_dim, kernel_size=k, stride=s, padding=p)]
+        layers += [nn.Conv3d(in_dim, out_dim, kernel_size=(k, k, k), stride=(s, s, s), padding=(p, p, p))]
 
         # Normalization Layer
         if norm is True:
@@ -21,7 +20,7 @@ class ConvBlock(nn.Module):
         elif non_linear == 'relu':
             layers += [nn.ReLU(inplace=True)]
 
-        self.conv_block = nn.Sequential(* layers)
+        self.conv_block = nn.Sequential(*layers)
 
     def forward(self, x):
         out = self.conv_block(x)
@@ -29,12 +28,13 @@ class ConvBlock(nn.Module):
 
 
 class DeconvBlock(nn.Module):
-    def __init__(self, in_dim, out_dim, k=4, s=2, p=1,o_p=1, norm=True, non_linear='relu'):
+    def __init__(self, in_dim, out_dim, k=4, s=2, p=1, o_p=1, norm=True, non_linear='relu'):
         super(DeconvBlock, self).__init__()
         layers = []
 
         # Transpose Convolution Layer
-        layers += [nn.ConvTranspose3d(in_dim, out_dim, kernel_size=k, stride=s, padding=p, output_padding=o_p)]
+        layers += [nn.ConvTranspose3d(in_dim, out_dim, kernel_size=(k, k, k), stride=(s, s, s), padding=(p, p, p),
+                                      output_padding=(o_p, o_p, o_p))]
 
         # Normalization Layer
         if norm is True:
@@ -46,7 +46,7 @@ class DeconvBlock(nn.Module):
         elif non_linear == 'sigmoid':
             layers += [nn.Sigmoid()]
 
-        self.deconv_block = nn.Sequential(* layers)
+        self.deconv_block = nn.Sequential(*layers)
 
     def forward(self, x):
         out = self.deconv_block(x)
@@ -54,10 +54,10 @@ class DeconvBlock(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, z_dim=8):
+    def __init__(self, z_dim=8, protein_channels=7):
         super(Generator, self).__init__()
 
-        self.downsample_1 = ConvBlock(35 + z_dim, 64, k=3, s=1, p=1, norm=False, non_linear='leaky_relu')
+        self.downsample_1 = ConvBlock(protein_channels + z_dim, 64, k=3, s=1, p=1, norm=False, non_linear='leaky_relu')
         self.downsample_2 = ConvBlock(64, 128, k=3, s=2, p=1, norm=True, non_linear='leaky_relu')
         self.downsample_3 = ConvBlock(128, 256, k=3, s=1, p=1, norm=True, non_linear='leaky_relu')
         self.downsample_4 = ConvBlock(256, 512, k=3, s=2, p=1, norm=True, non_linear='leaky_relu')
@@ -67,14 +67,14 @@ class Generator(nn.Module):
         self.downsample_8 = ConvBlock(512, 512, k=3, s=1, p=1, norm=True, non_linear='leaky_relu')
 
         # Need concatenation when upsampling, see foward function for details
-        self.upsample_1 = DeconvBlock(512, 512, k=3, s=1, p=1,o_p=0, norm=True, non_linear='relu')
-        self.upsample_2 = DeconvBlock(1024, 512, k=3, s=1, p=1,o_p=0, norm=True, non_linear='relu')
-        self.upsample_3 = DeconvBlock(1024, 512, k=3, s=2, p=1,o_p=1, norm=True, non_linear='relu')
-        self.upsample_4 = DeconvBlock(1024, 512, k=3, s=1, p=1,o_p=0, norm=True, non_linear='relu')
-        self.upsample_5 = DeconvBlock(1024, 256, k=3, s=2, p=1,o_p=1, norm=True, non_linear='relu')
-        self.upsample_6 = DeconvBlock(512, 128, k=3, s=1, p=1,o_p=0, norm=True, non_linear='relu')
-        self.upsample_7 = DeconvBlock(256, 64, k=3, s=2, p=1,o_p=1, norm=True, non_linear='relu')
-        self.upsample_8 = DeconvBlock(128, 34, k=3, s=1, p=1,o_p=0, norm=False, non_linear='sigmoid')
+        self.upsample_1 = DeconvBlock(512, 512, k=3, s=1, p=1, o_p=0, norm=True, non_linear='relu')
+        self.upsample_2 = DeconvBlock(1024, 512, k=3, s=1, p=1, o_p=0, norm=True, non_linear='relu')
+        self.upsample_3 = DeconvBlock(1024, 512, k=3, s=2, p=1, o_p=1, norm=True, non_linear='relu')
+        self.upsample_4 = DeconvBlock(1024, 512, k=3, s=1, p=1, o_p=0, norm=True, non_linear='relu')
+        self.upsample_5 = DeconvBlock(1024, 256, k=3, s=2, p=1, o_p=1, norm=True, non_linear='relu')
+        self.upsample_6 = DeconvBlock(512, 128, k=3, s=1, p=1, o_p=0, norm=True, non_linear='relu')
+        self.upsample_7 = DeconvBlock(256, 64, k=3, s=2, p=1, o_p=1, norm=True, non_linear='relu')
+        self.upsample_8 = DeconvBlock(128, 34, k=3, s=1, p=1, o_p=0, norm=False, non_linear='sigmoid')
 
     def forward(self, x, z):
         # z : (N, z_dim) -> (N, z_dim, 1, 1) -> (N, z_dim, H, W)
@@ -105,16 +105,16 @@ class Generator(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, z_dim=8):
+    def __init__(self, z_dim=8, ligand_channels=5):
         super(Encoder, self).__init__()
 
-        self.conv1 = ConvBlock(34, 64, k=3, s=1, p=1, norm=True, non_linear='relu')
+        self.conv1 = ConvBlock(ligand_channels, 64, k=3, s=1, p=1, norm=True, non_linear='relu')
         self.conv2 = ConvBlock(64, 128, k=3, s=1, p=1, norm=True, non_linear='relu')
         self.conv3 = ConvBlock(128, 128, k=3, s=1, p=1, norm=True, non_linear='relu')
         self.conv4 = ConvBlock(128, 256, k=3, s=1, p=1, norm=True, non_linear='relu')
         self.conv5 = ConvBlock(256, 256, k=3, s=1, p=1, norm=True, non_linear='relu')
 
-        self.pool = nn.AvgPool3d(kernel_size=2,stride=2)
+        self.pool = nn.AvgPool3d(kernel_size=2, stride=2)
 
         self.fc_mu = nn.Linear(256, z_dim)
         self.fc_logvar = nn.Linear(256, z_dim)
@@ -136,21 +136,24 @@ class Encoder(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, ligand_channels=5, protein_channels=7):
         super(Discriminator, self).__init__()
 
-        self.d1 = nn.Sequential(ConvBlock(69, 64, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(64, 128, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(128, 256, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(256, 512, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(512, 512, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(512, 512, k=3, s=1, p=1, norm=False, non_linear=None))
+        self.d1 = nn.Sequential(
+            ConvBlock(ligand_channels + protein_channels, 64, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(64, 128, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(128, 256, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(256, 512, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(512, 512, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(512, 512, k=3, s=1, p=1, norm=False, non_linear=None))
 
-        self.d2 = nn.Sequential(ConvBlock(69, 32, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(32, 64, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(64, 128, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(128, 256, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
-                                ConvBlock(256, 256, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'), ConvBlock(256, 256, k=3, s=1, p=1, norm=False, non_linear=None))
+        self.d2 = nn.Sequential(
+            ConvBlock(ligand_channels + protein_channels, 32, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(32, 64, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(64, 128, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(128, 256, k=3, s=2, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(256, 256, k=3, s=1, p=1, norm=True, non_linear='leaky_relu'),
+            ConvBlock(256, 256, k=3, s=1, p=1, norm=False, non_linear=None))
 
     def forward(self, x):
         out_1 = self.d1(x)
