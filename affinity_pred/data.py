@@ -2,7 +2,7 @@ from random import choice
 import numpy as np
 import torch
 import h5py
-from utils.preprocess import rotate_grid, make_3dgrid, Featurizer
+from molpro.utils.preprocess import rotate_grid, make_3dgrid, Featurizer
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningDataModule
