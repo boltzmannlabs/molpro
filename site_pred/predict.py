@@ -1,5 +1,5 @@
-from site_pred.model import SitePredModel
-from utils.preprocess import make_3dgrid, Featurizer
+from molpro.site_pred.model import SitePredModel
+from molpro.utils.preprocess import make_3dgrid, Featurizer
 import numpy as np
 from skimage.segmentation import clear_border
 from skimage.measure import label
