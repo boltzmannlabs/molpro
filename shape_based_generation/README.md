@@ -1,10 +1,10 @@
 ### Generating similiar molecules based on their shape (Shape based generation)
-##### Overview ->
+##### 1. Overview ->
 The generative design of novel scaffolds and functional groups can cover unexplored regions of chemical space that still possess lead-like properties.
 Here we are using an AI approach to generate novel molecules starting from a seed compound, its three-dimensional (3D) shape. A variational autoencoder is used to generate the 3D representation of a compound, followed by a system of convolutional for encoding and recurrent neural networks that generate a sequence of SMILES tokens. The generative design of novel scaffolds and functional groups can cover unexplored regions of chemical space that still possess lead-like properties.
 
 
-#### For training the model 
+#### 2. For training the model -> 
 
 ###### Data for training ::
 
@@ -19,7 +19,7 @@ Once you have the dataset you can start training the model. For that can execute
 
 after executing you will get a new folder called "lightning_logs".
 
-#### Generating similiar molecules with trained model
+#### 3. Generating similiar molecules with trained model ->
 After training of model you can start generating similiar molecules based on their shape. For this you can use generate_smiles from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated smiles.
 
     predict.generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,n_attempts :int= 20 , sample_prob :bool= False,unique_valid :bool= False) 
