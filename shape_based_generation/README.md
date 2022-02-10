@@ -6,7 +6,7 @@ Here we are using an AI approach to generate novel molecules starting from a see
 
 #### 2. For training the model -> 
 
-###### Data for training:
+##### Data for training:
 
 We will be using a subset of Zinc15 dataset for our model training. That will only have drug like smiles. you can download the dataset by clicking the link given bellow:       http://pub.htmd.org/zinc15_druglike_clean_canonical_max60.zip
       
