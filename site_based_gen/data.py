@@ -11,7 +11,6 @@ from scipy import ndimage
 from skimage.draw import ellipsoid
 from torch.utils.data import Dataset, DataLoader
 from tqdm.auto import tqdm
-
 from molpro.utils.preprocess import rotate_grid, make_3dgrid, Featurizer
 
 
