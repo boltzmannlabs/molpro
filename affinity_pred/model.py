@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 from pytorch_lightning import LightningModule, Trainer
-from models.resnet import ResNet
-from data import AffinityPredDataModule
+from molpro.models.resnet import ResNet
+from affinity_pred.data import AffinityPredDataModule
 from argparse import ArgumentParser
 import torchmetrics
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -55,7 +55,7 @@ class AffinityPredModel(LightningModule):
 
     @staticmethod
     def add_model_specific_args(parent_parser):
-        parser_model = parent_parser.add_argument_group("SitePredModel")
+        parser_model = parent_parser.add_argument_group("AffinityPredModel")
         parser_model.add_argument("--model_version", type=str, default='resnet10')
         parser_model.add_argument("--input_channel", type=int, default=8)
         parser_model.add_argument("--intermediate_channel", type=int, default=64)
