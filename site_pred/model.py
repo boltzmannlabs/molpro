@@ -1,8 +1,8 @@
 import torch
 from pytorch_lightning import LightningModule, Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from models.unet import UNet, DiceLoss, compute_per_channel_dice
-from site_pred.data import SitePredDataModule
+from molpro.models.unet import UNet, DiceLoss, compute_per_channel_dice
+from molpro.site_pred.data import SitePredDataModule
 from argparse import ArgumentParser
 
 
