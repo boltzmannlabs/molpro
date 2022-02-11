@@ -32,8 +32,7 @@ class geom_confs(Dataset):
         self.max_confs = max_confs
 
     def len(self):
-        return 40 if self.split_idx == 0 else 8
-        #return 10000 if self.split_idx == 0 else 1000
+        return 10000 if self.split_idx == 0 else 1000
 
     def get(self, idx):
         data = None
@@ -195,12 +194,9 @@ class drugs_confs(geom_confs):
 
 
 class GeomolDataModule(pl.LightningDataModule):
-    """Lightning datamodule to handle dataprep for dataloaders"""
-
-    def __init__(self,dataset_path: str = './', split_path: str= "./",dataset:str="drugs",batch_size: int = 1,
-                                                 nworkers: int = 6):
-
-        """ Lightning datamodule to handle dataprep for dataloaders
+    """Lightning datamodule to handle dataprep for dataloaders 
+        
+        Parameters :
         ---------------------
 
         dataset_path : str 
@@ -209,8 +205,11 @@ class GeomolDataModule(pl.LightningDataModule):
                     path for the numpy file which contains indexes of train,val,test datapoints
         batch_size : int
                   batch_size for model training
-        num_workers: int,
+        nworkers: int,
                 number of workers for pytorch dataloader """
+
+    def __init__(self,dataset_path: str = './', split_path: str= "./",dataset:str="drugs",batch_size: int = 1,
+                                                 nworkers: int = 6):
 
 
         super().__init__()
@@ -253,134 +252,3 @@ class GeomolDataModule(pl.LightningDataModule):
         return DataLoader(self.test_loader, batch_size=self.batch_size,
                                   num_workers=self.nworkers)
 
-
-
-
-
-"""def featurize_mol(mol_dic):
-
-    max_confs = 10
-    bonds = {BT.SINGLE: 0, BT.DOUBLE: 1, BT.TRIPLE: 2, BT.AROMATIC: 3}
-    confs = mol_dic['conformers']
-    print(confs)
-    random.shuffle(confs)  # shuffle confs
-    name = mol_dic["smiles"]
-
-    # filter mols rdkit can't intrinsically handle
-    mol_ = Chem.MolFromSmiles(name)
-    if mol_:
-        canonical_smi = Chem.MolToSmiles(mol_)
-    else:
-        return None
-
-    # skip conformers with fragments
-    if '.' in name:
-        return None
-
-    # skip conformers without dihedrals
-    N = confs[0]['rd_mol'].GetNumAtoms()
-    if N < 4:
-        return None
-    if confs[0]['rd_mol'].GetNumBonds() < 4:
-        return None
-    if not confs[0]['rd_mol'].HasSubstructMatch(dihedral_pattern):
-        return None
-
-    pos = torch.zeros([max_confs, N, 3])
-    pos_mask = torch.zeros(max_confs, dtype=torch.int64)
-    k = 0
-    for conf in confs:
-        mol = conf['rd_mol']
-
-        # skip mols with atoms with more than 4 neighbors for now
-        n_neighbors = [len(a.GetNeighbors()) for a in mol.GetAtoms()]
-        if np.max(n_neighbors) > 4:
-            continue
-
-        # filter for conformers that may have reacted
-        try:
-            conf_canonical_smi = Chem.MolToSmiles(Chem.RemoveHs(mol))
-        except Exception as e:
-            continue
-
-        if conf_canonical_smi != canonical_smi:
-            continue
-
-        pos[k] = torch.tensor(mol.GetConformer().GetPositions(), dtype=torch.float)
-        pos_mask[k] = 1
-        k += 1
-        correct_mol = mol
-        if k == max_confs:
-            break
-
-    # return None if no non-reactive conformers were found
-    if k == 0:
-        return None
-
-    type_idx = []
-    atomic_number = []
-    atom_features = []
-    chiral_tag = []
-    neighbor_dict = {}
-    ring = correct_mol.GetRingInfo()
-    for i, atom in enumerate(correct_mol.GetAtoms()):
-        type_idx.append(drugs_types[atom.GetSymbol()])
-        n_ids = [n.GetIdx() for n in atom.GetNeighbors()]
-        if len(n_ids) > 1:
-            neighbor_dict[i] = torch.tensor(n_ids)
-        chiral_tag.append(chirality[atom.GetChiralTag()])
-        atomic_number.append(atom.GetAtomicNum())
-        atom_features.extend([atom.GetAtomicNum(),
-                                1 if atom.GetIsAromatic() else 0])
-        atom_features.extend(one_k_encoding(atom.GetDegree(), [0, 1, 2, 3, 4, 5, 6]))
-        atom_features.extend(one_k_encoding(atom.GetHybridization(), [
-                                Chem.rdchem.HybridizationType.SP,
-                                Chem.rdchem.HybridizationType.SP2,
-                                Chem.rdchem.HybridizationType.SP3,
-                                Chem.rdchem.HybridizationType.SP3D,
-                                Chem.rdchem.HybridizationType.SP3D2]))
-        atom_features.extend(one_k_encoding(atom.GetImplicitValence(), [0, 1, 2, 3, 4, 5, 6]))
-        atom_features.extend(one_k_encoding(atom.GetFormalCharge(), [-1, 0, 1]))
-        atom_features.extend([int(ring.IsAtomInRingOfSize(i, 3)),
-                                int(ring.IsAtomInRingOfSize(i, 4)),
-                                int(ring.IsAtomInRingOfSize(i, 5)),
-                                int(ring.IsAtomInRingOfSize(i, 6)),
-                                int(ring.IsAtomInRingOfSize(i, 7)),
-                                int(ring.IsAtomInRingOfSize(i, 8))])
-        atom_features.extend(one_k_encoding(int(ring.NumAtomRings(i)), [0, 1, 2, 3]))
-
-    z = torch.tensor(atomic_number, dtype=torch.long)
-    chiral_tag = torch.tensor(chiral_tag, dtype=torch.float)
-
-    row, col, edge_type, bond_features = [], [], [], []
-    for bond in correct_mol.GetBonds():
-        start, end = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
-        row += [start, end]
-        col += [end, start]
-        edge_type += 2 * [bonds[bond.GetBondType()]]
-        bt = tuple(sorted([bond.GetBeginAtom().GetAtomicNum(), bond.GetEndAtom().GetAtomicNum()])), bond.GetBondTypeAsDouble()
-        bond_features += 2 * [int(bond.IsInRing()),
-                                int(bond.GetIsConjugated()),
-                                int(bond.GetIsAromatic())]
-
-    edge_index = torch.tensor([row, col], dtype=torch.long)
-    edge_type = torch.tensor(edge_type, dtype=torch.long)
-    edge_attr = F.one_hot(edge_type, num_classes=len(bonds)).to(torch.float)
-
-    perm = (edge_index[0] * N + edge_index[1]).argsort()
-    edge_index = edge_index[:, perm]
-    edge_type = edge_type[perm]
-    edge_attr = edge_attr[perm]
-
-    row, col = edge_index
-    hs = (z == 1).to(torch.float)
-    num_hs = scatter(hs[row], col, dim_size=N).tolist()
-
-    x1 = F.one_hot(torch.tensor(type_idx), num_classes=len(drugs_types))
-    x2 = torch.tensor(atom_features).view(N, -1)
-    x = torch.cat([x1.to(torch.float), x2], dim=-1)
-
-    data = Data(x=x, z=z, pos=[pos], edge_index=edge_index, edge_attr=edge_attr, neighbors=neighbor_dict,
-                chiral_tag=chiral_tag, name=name, boltzmann_weight=conf['boltzmannweight'],
-                degeneracy=conf['degeneracy'], mol=correct_mol, pos_mask=pos_mask)
-    return dat"""
