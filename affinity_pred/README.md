@@ -5,21 +5,21 @@ The worldwide increase and proliferation of drug resistant microbes, coupled wit
 #### 2. Preparing dataset:
 We will be using a subset of PDBBind dataset given in the sample data folder for training. 
 
-python data.py --data_path {path where pdb and mol2 files are stored} --hdf_path {path where processed dataset is set to be stored} --df_path {path to csv file containing pkd values and pdb ids} 
+    python data.py --data_path {path where pdb and mol2 files are stored} --hdf_path {path where processed dataset is set to be stored} --df_path {path to csv     file containing pkd values and pdb ids} 
 
 #### 3. Training model: 
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
 
-python model.py --hdf_path {path where dataset is stored} --train_ids_path {path where list of train ids is stored} --val_ids_path {path where list of validation ids is stored} --test_ids_path {path where list of test ids is stored} --batch_size {batch size for model training} --max_epochs {epochs to train for} --num_workers {number of workers for dataloader} --gpus {num_of_gpus_for_training: None for 'cpu'}
+    python model.py --hdf_path {path where dataset is stored} --train_ids_path {path where list of train ids is stored} --val_ids_path {path where list of validation ids is stored} --test_ids_path {path where list of test ids is stored} --batch_size {batch size for model training} --max_epochs {epochs to train for} --num_workers {number of workers for dataloader} --gpus {num_of_gpus_for_training: None for 'cpu'}
 
 after executing you will get a new folder called "lightning_logs".
 
 #### 4. Pkd value prediction:
 After training the model the checkpoint file saved in lightning_logs can be used for predicting the affinity of protein ligand complex. Make sure that the ligand is docked before giving to the model as input. The protein file should be protonated and not contain heteroatoms (water or ligand).
 
-from molpro.affinity_pred.predict import predict_affinity
-pkd = predict_affinity(protein_file_path, protein_file_type, ligand_file_path, ligand_file_type, model_checkpoint_path)
-print("The pkd of the protein ligand complex is %s" % pkd)
+    from molpro.affinity_pred.predict import predict_affinity
+    pkd = predict_affinity(protein_file_path, protein_file_type, ligand_file_path, ligand_file_type, model_checkpoint_path)
+    print("The pkd of the protein ligand complex is %s" % pkd)
     
 Input parameters :
 
