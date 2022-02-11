@@ -37,33 +37,6 @@ angle_combos = torch.LongTensor([[0, 1],
                                  [2, 3]]).to(device)
 
 
-def get_cycle_values(cycle_list, start_at=None):
-    start_at = 0 if start_at is None else cycle_list.index(start_at)
-    while True:
-        yield cycle_list[start_at]
-        start_at = (start_at + 1) % len(cycle_list)
-
-def get_cycle_indices(cycle, start_idx):
-    cycle_it = get_cycle_values(cycle, start_idx)
-    indices = []
-
-    end = 9e99
-    start = next(cycle_it)
-    a = start
-    while start != end:
-        b = next(cycle_it)
-        indices.append(torch.tensor([a, b]))
-        a = b
-        end = b
-
-    return indices
-
-def get_current_cycle_indices(cycles, cycle_check, idx):
-    c_idx = [i for i, c in enumerate(cycle_check) if c][0]
-    current_cycle = cycles.pop(c_idx)
-    current_idx = current_cycle[(np.array(current_cycle) == idx.item()).nonzero()[0][0]]
-    return get_cycle_indices(current_cycle, current_idx)
-
 
 def align_coords_Kabsch(p_cycle_coords, q_cycle_coords, p_mask, q_mask=None):
     """
@@ -90,22 +63,6 @@ def align_coords_Kabsch(p_cycle_coords, q_cycle_coords, p_mask, q_mask=None):
     p_cycle_coords_aligned = torch.matmul(R, p_cycle_coords.permute(0, 1, 3, 2)).permute(0, 1, 3, 2) + b.unsqueeze(2)
 
     return p_cycle_coords_aligned
-
-
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-angle_mask_ref = torch.LongTensor([[0, 0, 0, 0, 0, 0],
-                                   [0, 0, 0, 0, 0, 0],
-                                   [1, 0, 0, 0, 0, 0],
-                                   [1, 1, 1, 0, 0, 0],
-                                   [1, 1, 1, 1, 1, 1]]).to(device)
-
-angle_combos = torch.LongTensor([[0, 1],
-                                 [0, 2],
-                                 [1, 2],
-                                 [0, 3],
-                                 [1, 3],
-                                 [2, 3]]).to(device)
 
 
 def get_neighbor_ids(data):
@@ -1018,3 +975,32 @@ def build_gamma_rotation_inf(gamma_sin, gamma_cos, n_model_confs):
     H_gamma[:, 2, 2] = gamma_cos
 
     return H_gamma
+
+
+def get_cycle_values(cycle_list, start_at=None):
+    start_at = 0 if start_at is None else cycle_list.index(start_at)
+    while True:
+        yield cycle_list[start_at]
+        start_at = (start_at + 1) % len(cycle_list)
+
+def get_cycle_indices(cycle, start_idx):
+    cycle_it = get_cycle_values(cycle, start_idx)
+    indices = []
+
+    end = 9e99
+    start = next(cycle_it)
+    a = start
+    while start != end:
+        b = next(cycle_it)
+        indices.append(torch.tensor([a, b]))
+        a = b
+        end = b
+
+    return indices
+
+def get_current_cycle_indices(cycles, cycle_check, idx):
+    c_idx = [i for i, c in enumerate(cycle_check) if c][0]
+    current_cycle = cycles.pop(c_idx)
+    current_idx = current_cycle[(np.array(current_cycle) == idx.item()).nonzero()[0][0]]
+    return get_cycle_indices(current_cycle, current_idx)
+
