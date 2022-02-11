@@ -7,17 +7,33 @@ Prediction of a molecule’s 3D conformer ensemble from the molecular graph hold
 #### 2. For training the model -> 
 
 ##### Data for training:
+GEOM is a dataset with over 37 million molecular conformations annotated by energy and statistical weight for over 450,000 molecules. Here we will use a subset of it. you can download the dataset by clicking the link bellow
 
-We will be using a subset of Zinc15 dataset for our model training. That will only have drug like smiles. you can download the dataset by clicking the link given bellow: 
     
-    http://pub.htmd.org/zinc15_druglike_clean_canonical_max60.zip
+    https://dataverse.harvard.edu/api/access/datafile/4327252
       
 
-After downloading unzipping the file you will get a .smi file as name "zinc15_druglike_clean_canonical_max60.smi". which will have 66666 smiles.
+After downloading and unzipping the file you will get a folder name rdkit_folder under that 2 diffrent dataset will be there.
+
+    rdkit_folder/
+                 drugs/
+                        smile_seq1.pickle
+                        smile_seq2.pickle
+                        .
+                        .
+                        304340 pickle files
+                 qm9/
+                        smile_name1.pickle
+                        smile_name2.pickle
+                        .
+                        .
+                        133232 pickle files
+
+
 ##### Training of model:
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
 
-    python model.py --input_path {path_for_.smi_file} --batch_size {your_batch_size} --max_epochs {max_numnber_of_epochs} --num_workers {num_of_workers} --device     {'cpu'_or_'gpu'} --gpus {num_of_gpus_for_training}
+    python model.py --data_dir {pat_of_the_dataset_directory(drugs or qm9)}  --split_path {path_of_the_numpy_file_which_contain_indices_of_train_test_files} --n_epochs {max_number_of_epoch} --dataset {which_dataset_will_be_used_for_training_('drugs' or 'qm9')
 
 after executing you will get a new folder called "lightning_logs".
 
