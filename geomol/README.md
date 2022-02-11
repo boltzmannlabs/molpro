@@ -38,28 +38,31 @@ Once you have the dataset you can start training the model. For that can execute
 after executing you will get a new folder called "lightning_logs".
 
 #### 3. Generating similiar molecules with trained model ->
-After training of model you can start generating similiar molecules based on their shape. For this you can use generate_smiles from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated smiles.
+After training of model you can start generating 3d representation of molecules. For this you can use generate_conformers function from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated conformers.
 
-    predict.generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,n_attempts :int= 20 , sample_prob :bool= False,unique_valid :bool= False) 
+    predict.generate_conformers(input_smiles:List[str],hparams_path:str=None,ckpt_path :str=None,
+                                 n_conformers:int=10,dataset :str ="drugs",mmff: bool =False) 
     
 Input parameters :
 
-    input_smiles : List[str]
-                   those simles for which you want to generated similar smiles. input should be in ['smile_1,smiles_2,.....,smile_n] format
-    ckpt_path : str
-                   path for the trained lightning model
-    n_attempts : int
-                   how many number of smiliar smiles you want to generate per smile
-    sample_prob : bool
-                   samples smiles tockens for given shape features (probalistic picking)
-    unique_valid : bool 
-                   want to filter unique smiles from generated smiles or not.? """
+        input_smiles : List[str]
+                       those simles for which you want to generated 3d-conformer. input should be in ['smile_1,smiles_2,.....,smile_n] format
+        hparams_path : str
+                       path for the hparams.yaml file
+        ckpt_path    : str 
+                       path for the ckpt file of model
+        n_conformers : int
+                       how many number of conformers you want to generate per smile
+        dataset : bool
+                       By which model you want to generate the conformers ('drugs' or 'qm9')
+        mmff : bool 
+                       want to optimize the generated molecules by adding 'MMff94s' energy.?
 
 Returns : 
 
-    generated_smiles = {"smile_1":[gen_smi_1,gen_smi_2......,gen_smi_n],
-                        "smile_2":[gen_smi_1,gen_smi_2......,gen_smi_n],
-                        .
-                        .
-                        .
-                        "smile_+str(len(input_smiles))": [gen_smi_1,gen_smi_2.......,gen_smi_n] }
+    generated_conformers = {"smile_1":[gen_conf_1,gen_conf_2......,gen_conf_n],
+                            "smile_2":[gen_conf_1,gen_conf_2......,gen_conf_n],
+                            .
+                            .
+                            .
+                            "smile_+str(len(input_smiles))": [gen_conf_1,gen_conf_2.......,gen_conf_n] }
