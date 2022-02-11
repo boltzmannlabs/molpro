@@ -56,7 +56,7 @@ Input parameters :
         dataset : bool
                        By which model you want to generate the conformers ('drugs' or 'qm9')
         mmff : bool 
-                       want to optimize the generated molecules by adding 'MMff94s' energy.?
+                       want to optimize the generated conformers by adding 'MMff94s' energy.?
 
 Returns : 
 
