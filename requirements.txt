@@ -7,3 +7,4 @@ pip install torch-geometric == 1.7.2
 pip install pytorch-lightning
 pip install omegaconf
 pip install pot
+pip install rdkit-pypi
