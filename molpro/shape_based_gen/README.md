@@ -24,7 +24,7 @@ After training of model you can start generating similiar molecules based on the
 
     predict.generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,n_attempts :int= 20 , sample_prob :bool= False,unique_valid :bool= False) 
     
-Input parameters :
+##### Input parameters :
 
     input_smiles : List[str]
                    those simles for which you want to generated similar smiles. input should be in ['smile_1,smiles_2,.....,smile_n] format
@@ -35,9 +35,9 @@ Input parameters :
     sample_prob : bool
                    samples smiles tockens for given shape features (probalistic picking)
     unique_valid : bool 
-                   want to filter unique smiles from generated smiles or not.? """
+                   want to filter unique smiles from generated smiles or not.?
 
-Returns : 
+##### Returns : 
 
     generated_smiles = {"smile_1":[gen_smi_1,gen_smi_2......,gen_smi_n],
                         "smile_2":[gen_smi_1,gen_smi_2......,gen_smi_n],
