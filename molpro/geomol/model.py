@@ -103,10 +103,10 @@ def set_hyperparams(args):
 
 class GeomolModelModule(pl.LightningModule):
     """Lightning trainer module to handle training/validation for dataset"""
-    def __init__(self,hyper_parameters,node_features,edge_features):
+    def __init__(self,hyper_parameters,num_node_features,num_edge_features):
         super().__init__()
         self.save_hyperparameters()
-        self.model = GeoMol(hyper_parameters,node_features,edge_features)
+        self.model = GeoMol(hyper_parameters,num_node_features,num_edge_features)
     
     def forward(self, data,batch_idx):
         data = data
@@ -146,7 +146,7 @@ def main(params):
     st = time.perf_counter()
 
     print(params)
-    geomol_data = GeomolDataModule(smiles_path=params.data_dir,split_path=params.split_path,dataset=params.dataset,
+    geomol_data = GeomolDataModule(dataset_path=params.data_dir,split_path=params.split_path,dataset=params.dataset,
                           batch_size=params.batch_size)
 
 

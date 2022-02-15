@@ -130,7 +130,7 @@ class ShapeBasedGenDataset(Dataset):
         centroid = coords.mean(axis=0)
         coords -= centroid
         afeats = featurizer.features
-        vox = featurizer.make_3dgrid(coords, afeats, 23, 2)
+        vox = featurization.make_3dgrid(coords, afeats, 23, 2)
         vox = np.squeeze(vox, 0).transpose(3, 0, 1, 2)
         mol = Chem.MolFromSmiles(smiles_token)
         if not mol:

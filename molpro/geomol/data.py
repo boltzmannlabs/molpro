@@ -32,7 +32,8 @@ class geom_confs(Dataset):
         self.max_confs = max_confs
 
     def len(self):
-        return 10000 if self.split_idx == 0 else 1000
+        return 40 if self.split_idx == 0 else 5
+        #return 10000 if self.split_idx == 0 else 1000
 
     def get(self, idx):
         data = None
