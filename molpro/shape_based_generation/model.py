@@ -185,7 +185,7 @@ def main(params):
     bpdata = ShapeBasedGenDataModule(smiles_path=params.input_path,
                           batch_size=params.batch_size,
                           read_func=read_smi if params.input_path.endswith("smi") else read_csv,
-                          nworkers = params.nworkers)
+                          nworkers = params.num_workers)
 
     bpdata.prepare_data()
     encoder = ShapeEncoder(9)
