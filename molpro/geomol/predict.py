@@ -6,9 +6,9 @@ import numpy as np
 import random
 import torch
 from typing import List
-from geomol_utils import featurize_mol_from_smiles , construct_conformers
+from molpro.geomol.geomol_utils import featurize_mol_from_smiles , construct_conformers
 from torch_geometric.data import Batch
-from model import GeomolModelModule
+from molpro.geomol.model import GeomolModelModule
 from omegaconf import OmegaConf
 
 random.seed(0)
@@ -31,7 +31,7 @@ def initialize_model(hparams_path: str = None, checkpoint_path: str = None):
     """
 
     params = OmegaConf.load(hparams_path)
-    model = GeomolModelModule(params["hyper_parameters"],params["node_features"],params["edge_features"]).load_from_checkpoint(checkpoint_path)
+    model = GeomolModelModule(params["hyper_parameters"],params["num_node_features"],params["num_edge_features"]).load_from_checkpoint(checkpoint_path)
     return model
 
 
@@ -71,7 +71,7 @@ def generate_mols_from_coords(generated_cords: torch.tensor = None, num_atoms: i
     
     """
 
-    mols = [],
+    mols = []
     for x in generated_cords.split(1, dim=1):
         mol = Chem.AddHs(Chem.MolFromSmiles(smi))
         coords = x.squeeze(1).double().cpu().detach().numpy()
@@ -120,7 +120,8 @@ def generate_conformers(input_smiles:List[str],hparams_path:str=None,checkpoint_
             print(f'failed to featurize SMILES: {smi}')
             continue
         data = Batch.from_data_list([data_obj])
-        model_coords = model.prediction(data,n_confs= n_conformers)
+        model_coords = model.prediction(data,n_model_confs= n_conformers)
+        print("model_cords :",model_coords)
         generated_mols = generate_mols_from_coords(generated_cords = model_coords, num_atoms = data.x.size(0), mmff = False,smi = smi)
         conformer_dict[smi] = generated_mols
     
