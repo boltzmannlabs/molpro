@@ -48,8 +48,9 @@ def initialize_model(ckpt_path: str = None,device:str = "cpu"):
     encoder = ShapeEncoder(9)
     decoder = DecoderRNN(512, 1024, 29, 1,device)
     vae_model = VAE(nc=9,device=device)
+    model = ShapeBasedGenModule(encoder, decoder, vae_model)
     ckpt = torch.load(ckpt_path)
-    model = ShapeBasedGenModule(encoder, decoder, vae_model).load_state_dict(ckpt['state_dict'])
+    model.load_state_dict(ckpt['state_dict'])
     return model 
 
 
@@ -71,11 +72,13 @@ def featurize_smile(smile:str = None) -> torch.tensor:
     """
     featurizer = featurization.Featurizer(smile)
     featurizer.generate_conformer()
-    coords = featurizer.get_coords()
+    featurizer.get_coords
+    coords = featurizer.coords
     centroid = coords.mean(axis=0)
     coords -= centroid
-    afeats = featurizer.atom_features()
-    vox = featurizer.make_3dgrid(coords, afeats, 23, 2)
+    featurizer.atom_features
+    afeats = featurizer.features
+    vox = featurization.make_3dgrid(coords, afeats, 23, 2)
     vox = torch.tensor(np.squeeze(vox, 0).transpose(3, 0, 1, 2)).unsqueeze(0)
 
     return vox
@@ -144,8 +147,8 @@ def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
                             "smile_+str(len(input_smiles))": [gen_smi_1,gen_smi_2.......,gen_smi_n] }
         """
 
-    if input_smiles or ckpt_path is None:
-        raise TypeError('Please give right input_molecule and ckpt file.')
+    """if not input_smiles or ckpt_path is None:
+        raise TypeError('Please give right input_molecule and ckpt file.')"""
 
     model  = initialize_model(ckpt_path = ckpt_path,device = device)
     
@@ -160,5 +163,4 @@ def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
             generated_smiles["smi"] = decoded_smiles
 
     return generated_smiles
-
 
