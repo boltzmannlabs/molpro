@@ -9,7 +9,7 @@ from torch.nn.utils.rnn import pack_padded_sequence
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from molpro.models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
-from data import ShapeBasedGenDataModule, read_smi, read_csv
+from molpro.shape_based_gen.data import ShapeBasedGenDataModule, read_smi, read_csv
 
 
 
@@ -25,7 +25,7 @@ def parse_options():
                                 help="batch size for single gpu")
     parser.add_argument("--max_epochs", default=3, type=int,
                                 help="max epochs to train for")
-    parser.add_argument("--num_workers", type=int, default=8,
+    parser.add_argument("--num_workers", type=int, default=6,
                                 help="number of workers for pytorch dataloader")
     parser.add_argument("--device", default="cpu", type=str,
                                 help="on which device you want to train the model (cpu or cuda)")
@@ -57,7 +57,7 @@ class ShapeBasedGenModule(pl.LightningModule):
         self.vae_model = vae_model
         self.cap_loss = 0.
         ######################################################################################################################################################################
-        self.caption_start = 4000  
+        self.caption_start = 4000
         #######################################################################################################################################################################
         self.caption_criterion = nn.CrossEntropyLoss()
         self.reconstruction_function = nn.BCELoss()
@@ -106,7 +106,9 @@ class ShapeBasedGenModule(pl.LightningModule):
             self.log("train_cap_loss",cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
             self.manual_backward(cap_loss)
             caption_optimizer.step()
-            
+        
+        if batch_idx <= self.caption_start :
+            self.log("train_cap_loss",cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         if (batch_idx + 1) % 60000 == 0:
             self.log("Reducing LR\n")
@@ -134,7 +136,11 @@ class ShapeBasedGenModule(pl.LightningModule):
             outputs = self(x)
             cap_loss = self.caption_criterion(outputs, targets)
             self.log("val_cap_loss", cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
+            
+        if batch_idx <= self.caption_start :
+            self.log("train_cap_loss",cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
+        
     def test_step(self, batch, batch_idx):
         mol_batch, caption, lengths = batch
         x = batch
@@ -169,7 +175,7 @@ class ShapeBasedGenModule(pl.LightningModule):
 
     def prediction(self,data,sample_prob=False):
 
-        recon_batch  = self.vae_model(data)
+        recon_batch, mu, logvar  = self.vae_model(data)
         features = self.encoder(recon_batch)
         if sample_prob :
             output = self.decoder.sample_prob(features)
@@ -182,31 +188,36 @@ class ShapeBasedGenModule(pl.LightningModule):
 def main(params):
     print("Starting of main function...")
 
+    data_time = time.time()
     bpdata = ShapeBasedGenDataModule(smiles_path=params.input_path,
                           batch_size=params.batch_size,
                           read_func=read_smi if params.input_path.endswith("smi") else read_csv,
                           nworkers = params.num_workers)
 
+
     bpdata.prepare_data()
     encoder = ShapeEncoder(9)
-    decoder = DecoderRNN(512, 1024, 29, 1,params.device)
+    #decoder = DecoderRNN(512, 1024, 29, 1,params.device)
+    decoder = DecoderRNN(512, 16, 29, 1,params.device)
     vae_model = VAE(nc=9,device=params.device)
 
     model = ShapeBasedGenModule(encoder, decoder, vae_model)
+
+
     cur_time = datetime.now().strftime("%d%m%Y_%H:%M:%S")
     save_models_dir = "./trained-models/"
     os.makedirs(save_models_dir, exist_ok=True)
 
-    val_p_loss_callback = ModelCheckpoint(monitor="val_p_loss",dirpath=save_models_dir,filename="val-ligdream-{epoch:02d}-{val_p_loss:.2f}"+f"-{cur_time}",
+    """val_p_loss_callback = ModelCheckpoint(monitor="val_p_loss",dirpath=save_models_dir,filename="val-ligdream-{epoch:02d}-{val_p_loss:.2f}"+f"-{cur_time}",
                                                                                           save_top_k=3,mode="min")
     val_cap_loss_callback = ModelCheckpoint(monitor="val_cap_loss",dirpath=save_models_dir,filename="val-ligdream-{epoch:02d}-{val_cap_loss:.2f}"+f"-{cur_time}",
-                                                             save_top_k=3,mode="min")
+                                                             save_top_k=3,mode="min")"""
 
     print("Starting of trainers...")
     trainer = pl.Trainer(max_epochs=int(params.max_epochs),
                          progress_bar_refresh_rate=20,
-                         gpus = None if params.device == "cpu" else int(params.gpus),
-                         callbacks=[val_p_loss_callback,val_cap_loss_callback]
+                         gpus = None if params.device == "cpu" else int(params.gpus)
+                         #callbacks=[val_p_loss_callback,val_cap_loss_callback]
                          )
     trainer.fit(model, bpdata)
     print("Model Training Finished... Testing start...")
