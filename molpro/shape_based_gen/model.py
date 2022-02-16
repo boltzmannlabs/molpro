@@ -197,8 +197,8 @@ def main(params):
 
     bpdata.prepare_data()
     encoder = ShapeEncoder(9)
-    #decoder = DecoderRNN(512, 1024, 29, 1,params.device)
-    decoder = DecoderRNN(512, 16, 29, 1,params.device)
+    decoder = DecoderRNN(512, 1024, 29, 1,params.device)
+    #decoder = DecoderRNN(512, 16, 29, 1,params.device)
     vae_model = VAE(nc=9,device=params.device)
 
     model = ShapeBasedGenModule(encoder, decoder, vae_model)
