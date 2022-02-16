@@ -7,8 +7,8 @@ import numpy as np
 import torch.nn as nn
 import pytorch_lightning as pl
 from molpro.models.geomol_model import GeoMol
-from data import GeomolDataModule
-from geomol_utils import construct_conformers
+from molpro.geomol.data import GeomolDataModule
+from molpro.geomol.geomol_utils import construct_conformers
 
 def add_train_args(parser: ArgumentParser):
     """
