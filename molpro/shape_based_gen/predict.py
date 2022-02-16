@@ -147,8 +147,6 @@ def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
                             "smile_+str(len(input_smiles))": [gen_smi_1,gen_smi_2.......,gen_smi_n] }
         """
 
-    """if not input_smiles or ckpt_path is None:
-        raise TypeError('Please give right input_molecule and ckpt file.')"""
 
     model  = initialize_model(ckpt_path = ckpt_path,device = device)
     
