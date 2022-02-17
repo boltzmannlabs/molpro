@@ -22,7 +22,7 @@ after executing you will get a new folder called "lightning_logs".
 #### 3. Generating similiar molecules with trained model ->
 After training of model you can start generating similiar molecules based on their shape. For this you can use generate_smiles from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated smiles.
 
-    predict.generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,n_attempts :int= 20 , sample_prob :bool= False,unique_valid :bool= False) 
+    predict.generate_smiles(input_smiles = None, ckpt_path = None, n_attempts = 20, sample_prob = False, unique_valid = False) 
     
 ##### Input parameters :
 
