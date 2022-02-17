@@ -22,14 +22,15 @@ after executing you will get a new folder called "lightning_logs".
 #### 3. Generating similiar molecules with trained model ->
 After training of model you can start generating similiar molecules based on their shape. For this you can use generate_smiles from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated smiles.
 
-    predict.generate_smiles(input_smiles = None, ckpt_path = None, n_attempts = 20, sample_prob = False, unique_valid = False) 
+    from molpro.shape_based_gen.predict import generate_smiles
+    generated_smiles = generate_smiles(input_smiles = None, ckpt_path = None, n_attempts = 20, sample_prob = False, unique_valid = False) 
     
 ##### Input parameters :
 
     input_smiles : List[str]
                    those simles for which you want to generated similar smiles. input should be in ['smile_1,smiles_2,.....,smile_n] format
     ckpt_path : str
-                   path for the trained lightning model
+                   path of the ckpt file. which is under lightning_logs/checkpoints directory. 
     n_attempts : int
                    how many number of smiliar smiles you want to generate per smile
     sample_prob : bool
