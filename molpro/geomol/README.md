@@ -41,7 +41,7 @@ after executing you will get a new folder called "lightning_logs".
 After training of model you can start generating 3d representation of molecules. For this you can use generate_conformers function from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated conformers.
 
     from molpro.geomol.predict import generate_conformers
-    predict.generate_conformers(input_smiles:List[str],hparams_path:str=None,ckpt_path :str=None,
+    predict.generate_conformers(input_smiles:List[str],hparams_path:str=None,checkpoint_path :str=None,
                                  n_conformers:int=10,dataset :str ="drugs",mmff: bool =False) 
     
 Input parameters :
