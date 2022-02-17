@@ -33,13 +33,14 @@ After downloading and unzipping the file you will get a folder name rdkit_folder
 ##### Training of model:
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
 
-    python model.py --data_dir {pat_of_the_dataset_directory(drugs or qm9)}  --split_path {path_of_the_numpy_file_which_contain_indices_of_train_test_files} --n_epochs {max_number_of_epoch} --dataset {which_dataset_will_be_used_for_training_('drugs' or 'qm9')
+    python model.py --data_dir {pat_of_the_dataset_directory(drugs or qm9)}  --n_epochs {max_number_of_epoch} --dataset {which_dataset_will_be_used_for_training_('drugs' or 'qm9')
 
 after executing you will get a new folder called "lightning_logs".
 
 #### 3. Generating similiar molecules with trained model ->
 After training of model you can start generating 3d representation of molecules. For this you can use generate_conformers function from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated conformers.
 
+    from molpro.geomol.predict import generate_conformers
     predict.generate_conformers(input_smiles:List[str],hparams_path:str=None,ckpt_path :str=None,
                                  n_conformers:int=10,dataset :str ="drugs",mmff: bool =False) 
     
@@ -48,9 +49,9 @@ Input parameters :
         input_smiles : List[str]
                        those simles for which you want to generated 3d-conformer. input should be in ['smile_1,smiles_2,.....,smile_n] format
         hparams_path : str
-                       path for the hparams.yaml file
+                       path for the hparams.yaml file. which is under lightning_logs folder
         ckpt_path    : str 
-                       path for the ckpt file of model
+                       path of the ckpt file. which is under lightning_logs/checkpoints directory
         n_conformers : int
                        how many number of conformers you want to generate per smile
         dataset : bool
