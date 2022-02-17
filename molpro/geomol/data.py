@@ -10,30 +10,32 @@ from torch_scatter import scatter
 from torch_geometric.data import Dataset,Data,DataLoader
 from rdkit import Chem
 from rdkit.Chem.rdchem import HybridizationType, BondType as BT, ChiralType
-from geomol_utils import one_k_encoding , get_dihedral_pairs , dihedral_pattern,chirality,qm9_types,drugs_types
+from molpro.geomol.geomol_utils import one_k_encoding , get_dihedral_pairs , dihedral_pattern,chirality,qm9_types,drugs_types
 import pytorch_lightning as pl
 
 
 
 
 class geom_confs(Dataset):
-    def __init__(self, root: str, split_path:str, mode:str, transform=None, pre_transform=None, max_confs=10):
+    def __init__(self, dataset_path: str, indexes_array:np.array, mode:str, transform=None, pre_transform=None, max_confs=10):
 
-        super(geom_confs, self).__init__(root, transform, pre_transform)
-        self.root = root
-        self.split_idx = 0 if mode == 'train' else 1 if mode == 'val' else 2
-        self.split = np.load(split_path, allow_pickle=True)[self.split_idx]
+        super(geom_confs, self).__init__(dataset_path, transform, pre_transform)
+        self.dataset_path = dataset_path
+        self.mode = mode
+        self.indexes_array = indexes_array
         self.bonds = {BT.SINGLE: 0, BT.DOUBLE: 1, BT.TRIPLE: 2, BT.AROMATIC: 3}
 
 
         self.dihedral_pairs = {} # for memoization
-        all_files = sorted(glob.glob(osp.join(self.root, '*.pickle')))
-        self.pickle_files = [f for i, f in enumerate(all_files) if i in self.split]
+        all_files = sorted(glob.glob(osp.join(self.dataset_path, '*.pickle')))
+        self.pickle_files = [f for i, f in enumerate(all_files) if i in self.indexes_array]
         self.max_confs = max_confs
 
     def len(self):
-        return 40 if self.split_idx == 0 else 5
-        #return 10000 if self.split_idx == 0 else 1000
+        ###################################################################################################################################################
+        return 40 if self.mode == "train" else 5
+        #return 10000 if self.mode == 0 else 1000
+        ###################################################################################################################################################
 
     def get(self, idx):
         data = None
@@ -182,14 +184,14 @@ class geom_confs(Dataset):
 
 
 class qm9_confs(geom_confs):
-    def __init__(self, root, split_path, mode, transform=None, pre_transform=None, max_confs=10):
-        super(qm9_confs, self).__init__(root, split_path, mode, transform, pre_transform, max_confs)
+    def __init__(self, dataset_path, indexes, mode, transform=None, pre_transform=None, max_confs=10):
+        super(qm9_confs, self).__init__(dataset_path, indexes, mode, transform, pre_transform, max_confs)
         self.types = qm9_types
 
 
 class drugs_confs(geom_confs):
-    def __init__(self, root, split_path, mode, transform=None, pre_transform=None, max_confs=10):
-        super(drugs_confs, self).__init__(root, split_path, mode, transform, pre_transform, max_confs)
+    def __init__(self, dataset_path, indexes, mode, transform=None, pre_transform=None, max_confs=10):
+        super(drugs_confs, self).__init__(dataset_path, indexes, mode, transform, pre_transform, max_confs)
         self.types = drugs_types
 
 
@@ -202,20 +204,17 @@ class GeomolDataModule(pl.LightningDataModule):
 
         dataset_path : str 
                     path of the dataset
-        split_path  : str 
-                    path for the numpy file which contains indexes of train,val,test datapoints
         batch_size : int
                   batch_size for model training
         nworkers: int,
                 number of workers for pytorch dataloader """
 
-    def __init__(self,dataset_path: str = './', split_path: str= "./",dataset:str="drugs",batch_size: int = 1,
+    def __init__(self,dataset_path: str = './',dataset:str="drugs",batch_size: int = 1,
                                                  nworkers: int = 6):
 
 
         super().__init__()
-        self.smiles_path = dataset_path
-        self.split_path = split_path
+        self.dataset_path = dataset_path
         self.dataset = dataset
         self.batch_size = batch_size
         self.nworkers = nworkers
@@ -223,23 +222,25 @@ class GeomolDataModule(pl.LightningDataModule):
     def prepare_data(self):
         if not osp.exists(self.split_path):
             raise FileNotFoundError(f"file doesn't exist: {self.split_path}")
-        #self.smiles_tokens = read_func(self.smiles_path)
-        self.train_len = len(np.load(self.split_path,allow_pickle=True)[0])
-        self.val_len = len(np.load(self.split_path,allow_pickle=True)[1])
-        self.test_len = len(np.load(self.split_path,allow_pickle=True)[2])
-        print("Train_data_len:",self.train_len,"Val_data_len:", self.val_len,"Test_data_len:", self.test_len)
+        np.random.seed(0)
+        indexes = np.array(list(range(len(os.listdir(self.smiles_path)))))
+        np.random.shuffle(indexes)
+        self.train_indexes = indexes[:int(len(indexes)*80/100)]
+        self.val_indexes = indexes[int(len(indexes)*80/100):int(len(indexes)*90/100)]
+        self.test_indexes = indexes[int(len(indexes)*90/100):]
+        print("Train_data_len:",len(self.train_indexes),"Val_data_len:", len(self.val_indexes),"Test_data_len:", len(self.test_indexes))
 
     def setup(self, stage=None):
         if self.dataset == "qm9":
-            self.train_loader = qm9_confs(self.smiles_path,self.split_path,"train")
-            self.val_loader = qm9_confs(self.smiles_path,self.split_path,"val")
-            self.test_loader = qm9_confs(self.smiles_path,self.split_path,"test")
+            self.train_loader = qm9_confs(self.dataset_path,self.train_indexes,"train")
+            self.val_loader = qm9_confs(self.dataset_path,self.val_indexes,"val")
+            self.test_loader = qm9_confs(self.dataset_path,self.test_indexes,"test")
         
 
         if self.dataset == "drugs":
-            self.train_loader = drugs_confs(self.smiles_path,self.split_path,"train")
-            self.val_loader = drugs_confs(self.smiles_path,self.split_path,"val")
-            self.test_loader = drugs_confs(self.smiles_path,self.split_path,"test")
+            self.train_loader = drugs_confs(self.dataset_path,self.train_indexes,"train")
+            self.val_loader = drugs_confs(self.dataset_path,self.train_indexes,"train")
+            self.test_loader = drugs_confs(self.dataset_path,self.train_indexes,"train")
         
     def train_dataloader(self):
         return DataLoader(self.train_loader, batch_size=self.batch_size,
@@ -252,4 +253,3 @@ class GeomolDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.test_loader, batch_size=self.batch_size,
                                   num_workers=self.nworkers)
-
