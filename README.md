@@ -51,7 +51,7 @@ Step-2 will install molpro as a package in your current env.
 
 ### Step-3 Install all the Dependecies :
 
-First make sure you have python version => 3.7. And the for installing all the dependecies you can run install.sh file by given command :
+First make sure you have python version => 3.7 . And the for installing all the dependecies you can run install.sh file by given command :
 
     sh install.sh
     
