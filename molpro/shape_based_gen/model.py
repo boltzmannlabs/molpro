@@ -1,4 +1,5 @@
 import argparse
+from re import X
 import numpy as np
 import time
 from datetime import datetime
@@ -57,7 +58,7 @@ class ShapeBasedGenModule(pl.LightningModule):
         self.vae_model = vae_model
         self.cap_loss = 0.
         ######################################################################################################################################################################
-        self.caption_start = 4000
+        self.caption_start = 3
         #######################################################################################################################################################################
         self.caption_criterion = nn.CrossEntropyLoss()
         self.reconstruction_function = nn.BCELoss()
@@ -70,7 +71,9 @@ class ShapeBasedGenModule(pl.LightningModule):
     def forward(self, x, only_vae = False):
         
         mol_batch, caption, lengths = x
-        recon_batch, mu, logvar = self.vae_model(mol_batch)
+        in_data = mol_batch[:,:5]
+        discrm_data = mol_batch[:,5:]
+        recon_batch, mu, logvar = self.vae_model(in_data,discrm_data)
         if only_vae :
             return recon_batch,mu,logvar
         else : 
@@ -82,13 +85,13 @@ class ShapeBasedGenModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         caption_optimizer, vae_optimizer = self.optimizers()
         mol_batch, caption, lengths = batch
-        vae_optimizer.zero_grad()
         x = batch
+        vae_optimizer.zero_grad()
         recon_batch,mu,logvar = self(x,only_vae = True)
 
         
         vae_loss = self.rec_loss_func(self.reconstruction_function,
-                                      recon_batch, mol_batch, mu, logvar)
+                                      recon_batch, mol_batch[:,:5], mu, logvar)
         self.manual_backward(vae_loss, retain_graph=True
                              if batch_idx >= self.caption_start else False)
         p_loss = vae_loss.item()
@@ -103,11 +106,10 @@ class ShapeBasedGenModule(pl.LightningModule):
             self.decoder.zero_grad()
             outputs = self(x)
             cap_loss = self.caption_criterion(outputs, targets)
-            self.log("train_cap_loss",cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
             self.manual_backward(cap_loss)
             caption_optimizer.step()
         
-        if batch_idx <= self.caption_start :
+        if batch_idx > self.caption_start :
             self.log("train_cap_loss",cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         if (batch_idx + 1) % 60000 == 0:
@@ -121,7 +123,7 @@ class ShapeBasedGenModule(pl.LightningModule):
         x = batch
         recon_batch,mu,logvar = self(x,only_vae = True)
         vae_loss = self.rec_loss_func(self.reconstruction_function,
-                                      recon_batch, mol_batch, mu, logvar)
+                                      recon_batch, mol_batch[:,:5], mu, logvar)
         
         p_loss = vae_loss.item()
         self.log("val_p_loss", p_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
@@ -135,9 +137,8 @@ class ShapeBasedGenModule(pl.LightningModule):
             self.encoder.zero_grad()
             outputs = self(x)
             cap_loss = self.caption_criterion(outputs, targets)
-            self.log("val_cap_loss", cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
             
-        if batch_idx <= self.caption_start :
+        if batch_idx > self.caption_start :
             self.log("train_cap_loss",cap_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         
@@ -147,7 +148,7 @@ class ShapeBasedGenModule(pl.LightningModule):
         recon_batch,mu,logvar = self(x,only_vae = True)
         
         vae_loss = self.rec_loss_func(self.reconstruction_function,
-                                      recon_batch, mol_batch, mu, logvar)
+                                      recon_batch, mol_batch[:,:5], mu, logvar)
         p_loss = vae_loss.item()
         self.log("test_p_loss", p_loss,on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
@@ -175,7 +176,7 @@ class ShapeBasedGenModule(pl.LightningModule):
 
     def prediction(self,data,sample_prob=False):
 
-        recon_batch, mu, logvar  = self.vae_model(data)
+        recon_batch, _,_  = self.vae_model(data[0][:,:5],data[0][:,5:])
         features = self.encoder(recon_batch)
         if sample_prob :
             output = self.decoder.sample_prob(features)
@@ -196,10 +197,10 @@ def main(params):
 
 
     bpdata.prepare_data()
-    encoder = ShapeEncoder(9)
-    decoder = DecoderRNN(512, 1024, 29, 1,params.device)
-    #decoder = DecoderRNN(512, 16, 29, 1,params.device)
-    vae_model = VAE(nc=9,device=params.device)
+    encoder = ShapeEncoder(5)
+    #decoder = DecoderRNN(512, 1024, 29, 1,params.device)
+    decoder = DecoderRNN(512, 16, 29, 1,params.device)
+    vae_model = VAE(nc=5,device=params.device)
 
     model = ShapeBasedGenModule(encoder, decoder, vae_model)
 
