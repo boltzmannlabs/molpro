@@ -11,7 +11,9 @@ from torch.nn.utils.rnn import pack_padded_sequence
 from torch.utils.data import Dataset, DataLoader, random_split
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-import molpro.utils.preprocess as featurization
+from molpro.utils.preprocess import make_3dgrid, Featurizer, rotate_grid
+from random import choice
+
 
 VOCAB_LIST = [
                 "pad", "start", "end",
@@ -123,15 +125,37 @@ class ShapeBasedGenDataset(Dataset):
         return len(self.smiles_list)
 
     def __getitem__(self, idx: int):
-        smiles_token = self.smiles_list[idx]
-        featurizer = featurization.Featurizer(smiles_token,file_type= 'smi')
-        featurizer.generate_conformer()
+        smi = self.smiles_list[idx]
+
+        smiles_token = smi
+        #featurizer = featurization.Featurizer(smiles_token,file_type= 'smi')
+        fatures_list = ['hydrophobic', 'aromatic','acceptor', 'donor','ring']
+
+        featurizer = Featurizer(input_file = smi , file_type= 'smi', named_props  = ["partialcharge"], smarts_labels = fatures_list, metal_halogen_encode = False)
+
+
         coords = featurizer.coords
         centroid = coords.mean(axis=0)
         coords -= centroid
         afeats = featurizer.features
-        vox = featurization.make_3dgrid(coords, afeats, 23, 2)
-        vox = np.squeeze(vox, 0).transpose(3, 0, 1, 2)
+        features1 = afeats[:,:5]
+        features2 = afeats[:,3:]
+        rot = choice(range(24))
+        tr1 = 2 * np.random.rand(1, 3)
+        tr2 = 0.5 * np.random.rand(1, 3)
+        coords1 = rotate_grid(coords,rot)
+        coords1 += tr1
+        f1n = make_3dgrid(coords1,features1,23,2)
+
+        coords2 = rotate_grid(coords,rot)
+        coords2 += tr2
+        f2n = make_3dgrid(coords2,features2,23,2)
+
+        feats_final = np.concatenate([f1n,f2n],axis=4)
+
+
+        vox = np.squeeze(feats_final, 0).transpose(3, 0, 1, 2)
+
         mol = Chem.MolFromSmiles(smiles_token)
         if not mol:
             raise ValueError(f"Failed to parse molecule '{mol}'")
@@ -220,6 +244,3 @@ class ShapeBasedGenDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(self.bptest, batch_size=self.batch_size,
                           collate_fn=custom_collate, num_workers=self.nworkers)
-
-
-
