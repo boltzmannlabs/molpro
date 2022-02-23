@@ -1,5 +1,4 @@
 import argparse
-from re import X
 import numpy as np
 import time
 from datetime import datetime
@@ -68,12 +67,12 @@ class ShapeBasedGenModule(pl.LightningModule):
         self.save_hyperparameters()
 
 
-    def forward(self, x, only_vae = False):
+    def forward(self, x, only_vae = False,factor=1.):
         
         mol_batch, caption, lengths = x
         in_data = mol_batch[:,:5]
         discrm_data = mol_batch[:,5:]
-        recon_batch, mu, logvar = self.vae_model(in_data,discrm_data)
+        recon_batch, mu, logvar = self.vae_model(in_data,discrm_data,factor = factor)
         if only_vae :
             return recon_batch,mu,logvar
         else : 
@@ -174,9 +173,9 @@ class ShapeBasedGenModule(pl.LightningModule):
         return caption_optimizer, vae_optimizer
 
 
-    def prediction(self,data,sample_prob=False):
+    def prediction(self,data,sample_prob=False,factor=1.):
 
-        recon_batch, _,_  = self.vae_model(data[0][:,:5],data[0][:,5:])
+        recon_batch, _,_  = self.vae_model(data[0][:,:5],data[0][:,5:],factor=factor)
         features = self.encoder(recon_batch)
         if sample_prob :
             output = self.decoder.sample_prob(features)
