@@ -103,7 +103,7 @@ def plip(complex):
     
     index_of_selected_site = 0
     selected_site = list(interactions_by_site.keys())[index_of_selected_site]
-    print(selected_site)
+    
     valid_types = [
         "hydrophobic",
         "hbond",
@@ -117,7 +117,7 @@ def plip(complex):
     interaction_data={}
     for i in tqdm(valid_types):
         df=create_df_from_binding_site(interactions_by_site[selected_site], interaction_type=i)
-        print(df.empty)
+        
         if not df.empty:
             data=df.to_dict('index')
             #print(data)

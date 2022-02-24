@@ -1,14 +1,48 @@
+# importing libraries
+
+## importing Docking packages
 from vina import Vina
 import oddt
 import oddt.docking
+from openbabel import openbabel
+from PLI import plip
+from complex_prep import Converter
+
+## importing basic python packages
 import os
 import re
-from openbabel import openbabel
-import subprocess
-from omegaconf import OmegaConf
-import numpy as np
-from PLI import plip
+
 def dock_score(docking_engine,protein,smile,out_path,split_out_file,grid_size=[40,40,40],center=[0,0,0],exhaustiveness=32,n_poses=10):
+    """
+    Peforming Docking for smile and protein using given parameters 
+
+    Parametrs:
+    ----------
+    docking_engine: Str
+            Docking Engine to be used vina or vinardo
+    protein: Str
+            pdbqt protein file which need to be docked
+    smile: Str
+            Smile which need to be docked
+    out_path: Str
+            folder where the docked PDQT files to be saved
+    split_out_file: boolean
+            if yes, splits the pdbqt file conatining given number poses into multiple files with one pose each
+            if no, no splitting happens
+    grid_size: list
+            Box Size to be consider for rigid docking
+    center: list
+            Box center to be consider for rigid docking
+    exhaustiveness: int
+            flexibility of atoms to be given
+    n_poses: int
+            number of poses to be consider for docking
+    
+    Returns:
+    -------
+    None
+    """
+    
     print("started smile to pdbqt conversion")
     m = oddt.toolkit.readstring('smi',smile)
     if not m.OBMol.Has3D(): 
@@ -60,8 +94,52 @@ def dock_score(docking_engine,protein,smile,out_path,split_out_file,grid_size=[4
             a.close()
         os.remove(os.path.join(out_path,f'out_pose_{i+1}.pdbqt'))
 
-def Pro_lig_int(complex):
+def complex_prep(protein,ligand,ligand_file_type):
+    """
+    Creating the complex file using the docked protein and ligand file 
 
+    Parametrs:
+    ----------
+    protein: str
+            Path to protein ,file format PDB
+    ligand: str
+            Path to ligand file
+    ligand_file_type: str
+            File format of ligand (mol2,pdb,pdbqt)
+    Returns:
+    -------
+    None
+
+    """
+    if os.path.exists(os.path.join(os.getcwd(),'_complex_temp.pdb')):
+        os.remove(os.path.join(os.getcwd(),'_complex_temp.pdb'))
+    ligand_name=os.path.basename(ligand).split('.')[0]
+    Converter(protein,ligand,ligand_name,ligand_file_type).convert()
+    complex_file = open(f'{ligand_name}.pdb', "r")
+    lines = complex_file.readlines()
+    complex_file.close()
+    ind=lines.index('END                                                                             \n')
+    del lines[ind]
+    new_file = open(os.path.join(os.getcwd(),f'{ligand_name}_complex_.pdb'), "w+")
+    for line in lines:
+        new_file.write(line)
+
+    new_file.close()
+    os.remove(os.path.join(os.getcwd(),'_complex_temp.pdb'))
+    print("Successfully generated complex file:",os.path.join(os.getcwd(),f'{ligand_name}_complex_.pdb'))
+
+def Pro_lig_int(complex):
+    """
+    Protein ligand interaction evaluation/prediction  
+
+    Parametrs:
+    ----------
+    complex; str
+            path for the complex file, file format PDB
+    Returns:
+    -------
+    None
+    """
     try:
         interaction=plip(complex)
     except:
