@@ -34,7 +34,7 @@ class SiteGenModel(LightningModule):
         parser_model = parent_parser.add_argument_group("SiteGenModel")
         parser_model.add_argument("--z_dim", type=int, default=8)
         parser_model.add_argument("--protein_channels", type=int, default=7)
-        parser_model.add_argument("--ligand_channels", type=int, default=5)
+        parser_model.add_argument("--ligand_channels", type=int, default=6)
         parser_model.add_argument("--lambda_kl", type=int, default=0.01)
         parser_model.add_argument("--lambda_grid", type=int, default=10)
         parser_model.add_argument("--lambda_z", type=int, default=0.5)
