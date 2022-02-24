@@ -11,6 +11,7 @@ from scipy import ndimage
 from skimage.draw import ellipsoid
 from torch.utils.data import Dataset, DataLoader
 from tqdm.auto import tqdm
+
 from molpro.utils.preprocess import rotate_grid, make_3dgrid, Featurizer
 
 
@@ -38,8 +39,8 @@ def prepare_dataset(data_path: str, hdf_path: str, df_path: str) -> None:
                                                 smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor', 'ring'],
                                                 metal_halogen_encode=False)
                 ligand_featurizer = Featurizer(os.path.join(data_path, structure_id, '%s' % ligand_path[i]),
-                                               'mol2', named_props=['heavydegree'],
-                                               smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor'],
+                                               'mol2', named_props=['partialcharge'],
+                                               smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor', 'ring'],
                                                metal_halogen_encode=False)
                 prot_coords, prot_features = protein_featurizer.coords, protein_featurizer.features
                 ligand_coords, ligand_features = ligand_featurizer.coords, ligand_featurizer.features
