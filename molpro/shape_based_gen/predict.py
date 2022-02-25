@@ -48,6 +48,7 @@ def initialize_model(ckpt_path: str = None,device:str = "cpu"):
     """
     encoder = ShapeEncoder(5)
     decoder = DecoderRNN(512, 1024, 29, 1,device)
+    #decoder = DecoderRNN(512, 16, 29, 1,device)
     vae_model = VAE(nc=5,device=device)
     model = ShapeBasedGenModule(encoder, decoder, vae_model)
     ckpt = torch.load(ckpt_path)
@@ -97,7 +98,7 @@ def featurize_smile(smile:str = None) -> torch.tensor:
 
 
     vox = np.squeeze(feats_final, 0).transpose(3, 0, 1, 2)
-    vox = vox.unsqueeze(0)
+    vox = torch.tensor(vox).unsqueeze(0)
 
     return vox
 
@@ -134,7 +135,7 @@ def decode_smiles(model_outputs:torch.tensor = None) -> List[str]:
 
 def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
                                n_attempts :int= 20 , sample_prob :bool= False
-                               ,unique_valid :bool= False,device: str= "cpu") -> dict:
+                               ,unique_valid :bool= False,factor : float= 1., device: str= "cpu") -> dict:
     
 
     """ This function can be used for generate similiar molecules based on their shape.
@@ -173,7 +174,7 @@ def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
     generated_smiles = dict()
     for smi in input_smiles:
         vox = featurize_smile(smi).repeat(n_attempts,1,1,1,1)
-        model_outputs = model.prediction((vox,None,None),sample_prob=sample_prob,factor=1.)
+        model_outputs = model.prediction((vox,None,None),sample_prob=sample_prob,factor=factor)
         decoded_smiles = decode_smiles(model_outputs = model_outputs)
         if unique_valid :
             generated_smiles[smi] = unique_canonical(decoded_smiles)
@@ -181,4 +182,3 @@ def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
             generated_smiles[smi] = decoded_smiles
 
     return generated_smiles
-
