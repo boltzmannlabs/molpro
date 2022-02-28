@@ -7,6 +7,7 @@ class Converter:
         self.protein = protein_file
         self.flex = flex_file
         self.name=ligand_name
+        self.ligand_file_type=ligand_file_type
     def convert(self):
         protein=self.protein
         flex=self.flex

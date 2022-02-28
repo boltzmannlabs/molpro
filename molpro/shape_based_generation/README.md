@@ -35,7 +35,7 @@ After training of model you can start generating similiar molecules based on the
     sample_prob : bool
                    samples smiles tockens for given shape features (probalistic picking)
     unique_valid : bool 
-                   want to filter unique smiles from generated smiles or not.?
+                   want to filter unique smiles from generated smiles or not.? 
 
 ##### Returns : 
 

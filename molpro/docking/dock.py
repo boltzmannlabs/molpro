@@ -40,14 +40,15 @@ def dock_score(docking_engine,protein,smile,out_path,split_out_file,grid_size=[4
     
     Returns:
     -------
-    None
+    Top_energies: list
+                Binding affinity scores fo n_poses 
     """
     
     print("started smile to pdbqt conversion")
     m = oddt.toolkit.readstring('smi',smile)
     if not m.OBMol.Has3D(): 
         m.make3D(forcefield='mmff94', steps=150)
-    oddt.docking.AutodockVina.write_vina_pdbqt(m,"/home/boltzmann/consumers/consumers/docking",name_id='ttt1')
+    oddt.docking.AutodockVina.write_vina_pdbqt(m,os.getcwd(),name_id='temp')
     print(f"Done!! pdbqt conversion\n Setting up docking engine: {docking_engine}")
     
     v = Vina(sf_name=docking_engine,cpu=4)
@@ -56,7 +57,7 @@ def dock_score(docking_engine,protein,smile,out_path,split_out_file,grid_size=[4
     v.set_receptor(protein)
 
     #set ligand
-    v.set_ligand_from_file("temp.pdbqt")
+    v.set_ligand_from_file(os.path.join(os.getcwd(),"temp.pdbqt"))
 
     #generating the maps
     v.compute_vina_maps(center=center, box_size=grid_size)
@@ -73,9 +74,10 @@ def dock_score(docking_engine,protein,smile,out_path,split_out_file,grid_size=[4
     sc = v.dock(exhaustiveness=exhaustiveness, n_poses=n_poses)
     e=v.energies(n_poses=n_poses)
     
-    os.remove("temp.pdbqt")
+    os.remove(os.path.join(os.getcwd(),"temp.pdbqt"))
     v.write_poses(os.path.join(out_path,'out.pdbqt'), n_poses=n_poses+1, overwrite=True)
 
+    top_energy=[e[i][0] for i in range(len(e))]
     if split_out_file:
         #spliting the files
         path=out_path
@@ -93,6 +95,11 @@ def dock_score(docking_engine,protein,smile,out_path,split_out_file,grid_size=[4
             a.write(finds[i])
             a.close()
         os.remove(os.path.join(out_path,f'out_pose_{i+1}.pdbqt'))
+    return top_energy
+
+    
+
+   
 
 def complex_prep(protein,ligand,ligand_file_type):
     """
@@ -115,10 +122,12 @@ def complex_prep(protein,ligand,ligand_file_type):
         os.remove(os.path.join(os.getcwd(),'_complex_temp.pdb'))
     ligand_name=os.path.basename(ligand).split('.')[0]
     Converter(protein,ligand,ligand_name,ligand_file_type).convert()
-    complex_file = open(f'{ligand_name}.pdb', "r")
+    complex_file = open(os.path.join(os.getcwd(),'_complex_temp.pdb'), "r")
     lines = complex_file.readlines()
     complex_file.close()
     ind=lines.index('END                                                                             \n')
+#     ind=search_string_in_file(f'{ligand_name}.pdb','END')
+    print(ind)
     del lines[ind]
     new_file = open(os.path.join(os.getcwd(),f'{ligand_name}_complex_.pdb'), "w+")
     for line in lines:
@@ -127,6 +136,8 @@ def complex_prep(protein,ligand,ligand_file_type):
     new_file.close()
     os.remove(os.path.join(os.getcwd(),'_complex_temp.pdb'))
     print("Successfully generated complex file:",os.path.join(os.getcwd(),f'{ligand_name}_complex_.pdb'))
+
+
 
 def Pro_lig_int(complex):
     """
@@ -138,7 +149,8 @@ def Pro_lig_int(complex):
             path for the complex file, file format PDB
     Returns:
     -------
-    None
+    interaction: Dict
+                Returns the dictinary having the PLI 
     """
     try:
         interaction=plip(complex)
@@ -146,3 +158,10 @@ def Pro_lig_int(complex):
         interaction="No interactions"
 
     return interaction
+
+if __name__=='__main__':
+        top_energy=dock_score('vina','/home/boltzmann/space/KF/affinity_update/sting.pdbqt','OC(CC1)CCC1CNC(CN2N=NN=C2C3=CC=C(S3)Br)=O',
+        '/home/boltzmann/space/KF/affinity_update/temp_test',True,[40,40,40],[26.724,24.086,27.778],32,10)
+        # complex_prep('/home/boltzmann/space/KF/affinity_update/protein.pdb','/home/boltzmann/space/KF/affinity_update/temp_test/out_pose_1.pdbqt','pdbqt')
+        # interaction=Pro_lig_int("/home/boltzmann/space/KF/molpro/molpro/docking/out_pose_1_complex_.pdb")
+        print(top_energy)
