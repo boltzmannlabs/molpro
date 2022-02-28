@@ -91,18 +91,14 @@ Task of predicting binding sites of protein is very challenging. Our model is ba
 
     https://github.com/boltzmannlabs/molpro/tree/main/molpro/site_pred
     
-##### 6. site_similiarity : 
-Protein pocket matching, or binding site comparison, is of importance in drug discovery. Identification of similar binding pockets can help guide efforts for hit-finding, understanding polypharmacology, and characterization of protein function. The design of pocket matching methods has traditionally involved much intuition and has employed a broad variety of algorithms and representations of the input protein structures. We regard the high heterogeneity of past work and the recent availability of large-scale benchmarks as an indicator that a data-driven approach may provide a new perspective. We propose a convolutional neural network that encodes a three-dimensional representation of protein pockets into descriptor vectors that may be compared efficiently in an alignment-free manner by computing pairwise Euclidean distances. The network is trained with supervision (i) to provide similar pockets with similar descriptors, (ii) to separate the descriptors of dissimilar pockets by a minimum margin, and (iii) to achieve robustness to nuisance variations. For whole code and how to use that feature visit that directory under molpro directory or you can click on the bellow link :
-
-    https://github.com/boltzmannlabs/molpro/tree/main/molpro/site_similarity
     
     
-##### 7. Docking :
+##### 6. Docking :
 AutoDock Vina is one of the fastest and most widely used open-source docking engines. It is a turnkey computational docking program that is based on a simple scoring function and rapid gradient-optimization conformational search. It was originally designed and implemented by Dr. Oleg Trott in the Molecular Graphics Lab, and it is now being maintained and develop by the Forli Lab at The Scripps Research Institute.In this, we have created an End-to-End docking pipline, starting from docking, Protein-ligands complex generation and prediction of their interaction , then rescoring or Pkd prediction. For whole code and how to use that feature visit that directory under molpro directory or you can click on the bellow link : 
 
     https://github.com/boltzmannlabs/molpro/tree/main/molpro/docking
     
-#### 8. Shape-Alignment
+#### 7. Shape-Alignment
 In drug discovery, common atomic level information of the small molecules / drugs aren't avaiable. In such cases, 3D arrangement (or superposition) of putative ligands have been utilized to conclude underlying necessities for organic movement. Various techniques are proposed for little atomic superposition or primary arrangement. These techniques can be ordered generally into two kinds, in particular point-based and property-based strategies. In point-based strategies, sets of molecules or pharmacophoric focuses are superposed by the least-squares fitting. Notwithstanding, in property-based techniques, different sub-atomic properties are used for superposition, including electron thickness, sub-atomic volume or shape, charge conveyance or sub-atomic electrostatic potential (MEP), hydrophobicity, hydrogen holding capacity, etc. For whole code and how to use that feature, visit that directory under molpro directory or you can click on the bellow link : 
     
     https://github.com/boltzmannlabs/molpro/tree/main/molpro/shape_alignment
