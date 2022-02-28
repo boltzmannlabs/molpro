@@ -98,7 +98,7 @@ AutoDock Vina is one of the fastest and most widely used open-source docking eng
 
     https://github.com/boltzmannlabs/molpro/tree/main/molpro/docking
     
-#### 7. Shape-Alignment
+##### 7. Shape-Alignment
 In drug discovery, common atomic level information of the small molecules / drugs aren't avaiable. In such cases, 3D arrangement (or superposition) of putative ligands have been utilized to conclude underlying necessities for organic movement. Various techniques are proposed for little atomic superposition or primary arrangement. These techniques can be ordered generally into two kinds, in particular point-based and property-based strategies. In point-based strategies, sets of molecules or pharmacophoric focuses are superposed by the least-squares fitting. Notwithstanding, in property-based techniques, different sub-atomic properties are used for superposition, including electron thickness, sub-atomic volume or shape, charge conveyance or sub-atomic electrostatic potential (MEP), hydrophobicity, hydrogen holding capacity, etc. For whole code and how to use that feature, visit that directory under molpro directory or you can click on the bellow link : 
     
     https://github.com/boltzmannlabs/molpro/tree/main/molpro/shape_alignment
