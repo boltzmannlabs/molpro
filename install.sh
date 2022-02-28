@@ -10,3 +10,8 @@ pip install rdkit-pypi
 conda install -c conda-forge openbabel
 pip install h5py
 pip install scikit-image
+pip install vina
+conda install -c conda-forge oddt
+conda install -c conda-forge plip
+conda install -c conda-forge biopython
+pip install biopandas
