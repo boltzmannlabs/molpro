@@ -51,10 +51,19 @@ Step-2 will install molpro as a package in your current env.
 
 ### Step-3 Install all the Dependecies :
 
-First make sure you have python version => 3.7 . And the for installing all the dependecies you can run install.sh file by given command :
+First make sure you have conda installed in your system.Then run the following command :
+    
+    conda create --name molpro_env python=3.7
+    
+this command will create a new enviroment as name"molpro_env" with python version 3.7. Now activate this new enviroment by command :
+
+    conda activate molpro_env
+
+and for installing all the dependecies you can run install.sh file by given command :
 
     sh install.sh
     
+after successfull excecution of this command you can start molpro package and using diffrent features in it.
 
 ### Step-4 Start using diffrrent-diffrent features :
 
