@@ -97,10 +97,14 @@ class VAE(nn.Module):
         self.d4 = ConvBlock(ndf*2, ndf, k=3, s=1, p=1, norm=True, non_linear='leaky_relu')
 
         # up2 12 -> 24
-        self.d5 = DeconvBlock(ndf, 32, k=3, s=2, p=1, o_p=1, norm=True, non_linear='leaky_relu')
+        self.d5 = DeconvBlock(ndf+32, 32, k=3, s=2, p=1, o_p=1, norm=True, non_linear='leaky_relu')
 
         # Output layer
-        self.d6 = ConvBlock(32, nc, k=3, s=1, p=1, norm=False, non_linear='sigmoid')
+        self.d6 = ConvBlock(64, nc, k=3, s=1, p=1, norm=False, non_linear='sigmoid')
+
+        # Condtional encoding
+        self.ce1 = ConvBlock(3, 32, 3, 1, 1)
+        self.ce2 = ConvBlock(32, 32, 3, 2, 1)
 
         self.relu = nn.ReLU()
 
@@ -113,18 +117,23 @@ class VAE(nn.Module):
         h5 = h5.view(-1, 512 * 3 * 3 * 3)
         return self.fc1(h5), self.fc2(h5)
 
-    def reparametrize(self, mu, logvar):
+    def reparametrize(self, mu, logvar,factor):
         std = logvar.mul(0.5).exp_()
         eps = torch.randn(std.size(), dtype=torch.float32, device=self.device)
-        return eps.mul(std).add_(mu)
+        return eps.mul(std*factor).add_(mu)
 
-    def decode(self, z):
+    def decode(self, z,cond_x):
+        cc1 = self.relu(self.ce1(cond_x))
+        cc2 = self.relu(self.ce2(cc1))
+
         h1 = self.relu(self.d1(z))
         h1 = h1.view(-1, self.ndf * 4, 3, 3, 3)
         h2 = self.d2(h1)
         h3 = self.d3(h2)
         h4 = self.d4(h3)
+        h4 = torch.cat([h4, cc2], dim=1)
         h5 = self.d5(h4)
+        h5 = torch.cat([h5, cc1], dim=1)
         return self.d6(h5)
 
     def get_latent_var(self, x):
@@ -132,10 +141,10 @@ class VAE(nn.Module):
         z = self.reparametrize(mu, logvar)
         return z
 
-    def forward(self, x):
+    def forward(self, x,cond_x,factor=1.):
         mu, logvar = self.encode(x)
-        z = self.reparametrize(mu, logvar)
-        res = self.decode(z)
+        z = self.reparametrize(mu, logvar,factor)
+        res = self.decode(z,cond_x)
         return res, mu, logvar
 
 
