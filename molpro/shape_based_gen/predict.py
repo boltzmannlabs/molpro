@@ -134,8 +134,8 @@ def decode_smiles(model_outputs:torch.tensor = None) -> List[str]:
 
 
 def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
-                               n_attempts :int= 20 , sample_prob :bool= False
-                               ,unique_valid :bool= False,factor : float= 1., device: str= "cpu") -> dict:
+                               n_attempts :int= 20 , sample_prob :bool= False,factor : float= 1.
+                               ,unique_valid :bool= False, device: str= "cpu") -> dict:
     
 
     """ This function can be used for generate similiar molecules based on their shape.
@@ -151,6 +151,8 @@ def generate_smiles(input_smiles :List[str]= None, ckpt_path :str = None,
                        how many number of smiliar smiles you want to generate per smile
         sample_prob : bool,
                        samples smiles tockens for given shape features (probalistic picking)
+        factor  : float,
+                       variability factor
         unique_valid : bool,
                        want to filter unique smiles from generated smiles or not.? 
 
