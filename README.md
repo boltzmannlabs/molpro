@@ -59,9 +59,14 @@ Step-2 will install molpro as a package in your current env.
 
     conda activate molpro_env
     
-##### Now you can install all the dependecies by running the following command:
+##### Now you can install all the dependecies by running the following command for linux based systems:
 
     sh install.sh
+    
+##### if you are using windows the run the following 
+
+    
+    bash install.sh
     
 
 ### Step-4 Start using diffrrent-diffrent features :
