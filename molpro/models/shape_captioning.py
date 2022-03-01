@@ -136,11 +136,6 @@ class VAE(nn.Module):
         h5 = torch.cat([h5, cc1], dim=1)
         return self.d6(h5)
 
-    def get_latent_var(self, x):
-        mu, logvar = self.encode(x.view())
-        z = self.reparametrize(mu, logvar)
-        return z
-
     def forward(self, x,cond_x,factor=1.):
         mu, logvar = self.encode(x)
         z = self.reparametrize(mu, logvar,factor)
