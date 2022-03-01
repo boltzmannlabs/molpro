@@ -23,7 +23,7 @@ after executing you will get a new folder called "lightning_logs".
 After training of model you can start generating similiar molecules based on their shape. For this you can use generate_smiles from predict.py script. This function takes a list of smiles and returns a dictionary containing smile as the key and values as a list of generated smiles.
 
     from molpro.shape_based_gen.predict import generate_smiles
-    generated_smiles = generate_smiles(input_smiles = None, ckpt_path = None, n_attempts = 20, sample_prob = False, unique_valid = False) 
+    generated_smiles = generate_smiles(input_smiles = None, ckpt_path = None, n_attempts = 20, sample_prob = False, factor = 1.,  unique_valid = False) 
     
 ##### Input parameters :
 
@@ -35,6 +35,8 @@ After training of model you can start generating similiar molecules based on the
                    how many number of smiliar smiles you want to generate per smile
     sample_prob : bool
                    samples smiles tockens for given shape features (probalistic picking)
+    factor : float
+                   variability factor
     unique_valid : bool 
                    want to filter unique smiles from generated smiles or not.?
 
