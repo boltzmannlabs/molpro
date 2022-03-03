@@ -15,7 +15,7 @@ After downloading unzipping the file you will get a .smi file as name "zinc15_dr
 ##### Training of model:
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
 
-    python model.py --input_path {path_for_.smi_file} --batch_size {your_batch_size} --max_epochs {max_numnber_of_epochs} --num_workers {num_of_workers} --device     {'cpu'_or_'gpu'} --gpus {num_of_gpus_for_training}
+    python model.py --input_path {path_for_.smi_file} --batch_size {your_batch_size} --max_epochs {max_numnber_of_epochs} --num_workers {num_of_workers} --device {'cpu'_or_'gpu'} --gpus {num_of_gpus_for_training}
 
 after executing you will get a new folder called "lightning_logs".
 
