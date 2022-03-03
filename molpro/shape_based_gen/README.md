@@ -11,7 +11,7 @@ Here we are using an AI approach to generate novel molecules starting from a see
 We will be using a subset of Zinc15 dataset for our model training. That will only have drug like smiles. you can download the dataset by clicking the link given bellow:       http://pub.htmd.org/zinc15_druglike_clean_canonical_max60.zip
       
 
-After downloading unzipping the file you will get a .smi file as name "zinc15_druglike_clean_canonical_max60.smi". which will have 66666 smiles.
+After downloading unzipping the file you will get a .smi file as name "zinc15_druglike_clean_canonical_max60.smi". which will have smiles.
 ##### Training of model:
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
 
