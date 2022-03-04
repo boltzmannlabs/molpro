@@ -119,7 +119,7 @@ def main(params):
     st = time.perf_counter()
 
     print(params)
-    geomol_data = GeomolDataModule(dataset_path=params.data_dir,split_path=params.split_path,dataset=params.dataset,
+    geomol_data = GeomolDataModule(dataset_path=params.data_dir,dataset=params.dataset,
                           batch_size=params.batch_size)
 
 
