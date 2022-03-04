@@ -54,7 +54,7 @@ Input parameters :
                        path of the ckpt file. which is under lightning_logs/checkpoints directory
         n_conformers : int
                        how many number of conformers you want to generate per smile
-        dataset : bool
+        dataset : str
                        By which model you want to generate the conformers ('drugs' or 'qm9')
         mmff : bool 
                        want to optimize the generated conformers by adding 'MMff94s' energy.?
