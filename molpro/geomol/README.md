@@ -1,7 +1,7 @@
 ## Generating 3d structure of a molecule
 
 #### 1. Overview ->
-Prediction of a molecule’s 3D conformer ensemble from the molecular graph holds a key role in areas of cheminformatics and drug discovery. We are using a  machine learning approach to generate distributions of low-energy molecular 3D conformers. Leveraging the power of message passing neural networks (MPNNs) to capture local and global graph information, we predict local atomic 3D structures and torsion angles, and using these we are assembling the whole conformer for that molecule. The original work is done by Department of Chemical Engineering, MIT, Cambridge. For more details visit 
+Prediction of a molecule’s 3D conformer ensemble from the molecular graph holds a key role in areas of cheminformatics and drug discovery. We are using a  machine learning approach to generate distributions of low-energy molecular 3D conformers. Leveraging the power of message passing neural networks (MPNNs) to capture local and global graph information, we predict local atomic 3D structures and torsion angles, and using these we are assembling the whole conformer for that molecule. The original work is done by Department of Chemical Engineering, MIT, Cambridge. For more details visit :
 
     https://arxiv.org/pdf/2106.07802.pdf
 
