@@ -124,3 +124,4 @@ if __name__ == '__main__':
                                          args.batch_size, args.num_workers, args.pin_memory)
     trainer = Trainer.from_argparse_args(args, callbacks=[ModelCheckpoint(monitor='val_correlation', mode='max')])
     trainer.fit(model, data_module)
+    trainer.test(model, data_module)
