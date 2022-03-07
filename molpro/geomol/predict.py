@@ -121,7 +121,6 @@ def generate_conformers(input_smiles:List[str],hparams_path:str=None,checkpoint_
             continue
         data = Batch.from_data_list([data_obj])
         model_coords = model.prediction(data,n_model_confs= n_conformers)
-        print("model_cords :",model_coords)
         generated_mols = generate_mols_from_coords(generated_cords = model_coords, num_atoms = data.x.size(0), mmff = False,smi = smi)
         conformer_dict[smi] = generated_mols
     
