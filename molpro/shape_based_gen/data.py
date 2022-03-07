@@ -82,26 +82,6 @@ def read_csv(csv_path: str) -> List[str]:
         return smiles_tokens
 
 
-def custom_collate(in_data):
-    """
-    Collects and creates a batch.
-    """
-    # Sort a data list by smiles length (descending order)
-    in_data.sort(key=lambda x: x[2], reverse=True)
-    images, smiles, lengths = zip(*in_data)
-
-    images = torch.stack(images, 0)  # Stack images
-
-    # Merge smiles (from tuple of 1D tensor to 2D tensor).
-    # lengths = [len(smile) for smile in smiles]
-    targets = torch.zeros(len(smiles), max(lengths)).long()
-    for i, smile in enumerate(smiles):
-        end = lengths[i]
-        targets[i, :end] = smile[:end]
-    return images, targets, lengths
-
-
-
 class ShapeBasedGenDataset(Dataset):
     """ Class to featurize smile while training 
 
