@@ -31,6 +31,9 @@ After downloading and unzipping the file you will get a folder name rdkit_folder
                         .
                         133232 pickle files
 
+or if you just want to try on sample datset then we have created a sample dataset by randomly selecting datapoints from original dataset. You can download the sample dataset through the link : 
+
+    https://drive.google.com/drive/folders/1Y7gktdSyq3iu6OmHXVdUfgANvtOq9GU_?usp=sharing
 
 ##### Training of model:
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
