@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 import time
-from datetime import datetime
 import os
 import torch
 import torch.nn as nn
