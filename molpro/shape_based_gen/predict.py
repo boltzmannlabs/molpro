@@ -1,11 +1,10 @@
-
 from importlib.resources import path
 import numpy as np
 from rdkit import Chem
 import torch
 from typing import Callable, List
 from model import ShapeBasedGenModule
-from data import vocab_i2c_v1,vocab_c2i_v1
+from data import vocab_i2c_v1
 from molpro.models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
 from molpro.utils.preprocess import make_3dgrid, Featurizer, rotate_grid
 from random import choice
