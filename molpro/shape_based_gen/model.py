@@ -1,4 +1,4 @@
-import argparse
+from argparse import ArgumentParser
 import numpy as np
 import time
 import os
@@ -211,6 +211,7 @@ def main(params):
 
 if __name__ == "__main__":
     start_time = time.perf_counter()
+    parser = ArgumentParser()
     configs = parse_options()
     main(configs)
     print(f"Total time taken: {time.perf_counter() - start_time}")
