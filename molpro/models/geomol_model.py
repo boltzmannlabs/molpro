@@ -10,7 +10,7 @@ from torch.nn import TransformerEncoderLayer
 import torch_geometric as tg
 from torch_geometric.nn import global_add_pool
 from torch_scatter import scatter
-from geomol_utils import *
+from molpro.geomol.geomol_utils import *
 from itertools import permutations
 import numpy as np
 import ot
