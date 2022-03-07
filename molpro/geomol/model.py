@@ -23,11 +23,9 @@ def add_train_args(parser: ArgumentParser):
 
     # Training arguments
     parser.add_argument('--n_epochs', type=int, default=2)
-    parser.add_argument('--warmup_epochs', type=int, default=2)
     parser.add_argument('--batch_size', type=int, default=3)
     parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--num_workers', type=int, default=2)
-
+    parser.add_argument('--num_workers', type=int, default=6)
     parser.add_argument('--verbose', action='store_true', default=False)
 
 def parse_train_args() -> Namespace:
@@ -43,7 +41,7 @@ def parse_train_args() -> Namespace:
     return args
 
 
-def set_hyperparams(args):
+def set_hyperparams():
     """
     return: A dictionary containing hyperparams.
     """
@@ -83,7 +81,8 @@ class GeomolModelModule(pl.LightningModule):
     
     def forward(self, data,batch_idx):
         data = data
-        result = self.model(data) if batch_idx > 8 else self.model(data, ignore_neighbors=True)
+        #result = self.model(data) if batch_idx > 8 else self.model(data, ignore_neighbors=True) # To train on sampe_data
+        result = self.model(data) if batch_idx > 128 else self.model(data, ignore_neighbors=True)
         return result
 
 
@@ -125,7 +124,7 @@ def main(params):
 
     geomol_data.prepare_data()
     geomol_data.setup()
-    hyperparams = set_hyperparams(params)
+    hyperparams = set_hyperparams()
     if params.dataset == "drugs":
         model=GeomolModelModule(hyperparams,num_node_features = 74,num_edge_features = 4)
     else :
@@ -148,5 +147,4 @@ if __name__ == "__main__":
     main(configs)
     print(f"Total time taken: {time.perf_counter() - st}")
 
-# args --data_dir /home/uttu/bayes_labs/my_geomol_new_versions/sample_data/drugs --split_path /home/uttu/bayes_labs/my_geomol_new_versions/sample_data/drugs_split.npy --n_epochs 3 --dataset drugs
 
