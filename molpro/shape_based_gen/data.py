@@ -235,12 +235,30 @@ class ShapeBasedGenDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         return DataLoader(self.bptrain, batch_size=self.batch_size,
-                          collate_fn=custom_collate, num_workers=self.nworkers)
+                          collate_fn=self.custom_collate, num_workers=self.nworkers)
 
     def val_dataloader(self):
         return DataLoader(self.bpval, batch_size=self.batch_size,
-                          collate_fn=custom_collate, num_workers=self.nworkers)
+                          collate_fn=self.custom_collate, num_workers=self.nworkers)
 
     def test_dataloader(self):
         return DataLoader(self.bptest, batch_size=self.batch_size,
-                          collate_fn=custom_collate, num_workers=self.nworkers)
+                          collate_fn=self.custom_collate, num_workers=self.nworkers)
+      
+    def custom_collate(self,in_data):
+    """
+    Collects and creates a batch.
+    """
+    # Sort a data list by smiles length (descending order)
+    in_data.sort(key=lambda x: x[2], reverse=True)
+    images, smiles, lengths = zip(*in_data)
+
+    images = torch.stack(images, 0)  # Stack images
+
+    # Merge smiles (from tuple of 1D tensor to 2D tensor).
+    # lengths = [len(smile) for smile in smiles]
+    targets = torch.zeros(len(smiles), max(lengths)).long()
+    for i, smile in enumerate(smiles):
+        end = lengths[i]
+        targets[i, :end] = smile[:end]
+    return images, targets, lengths
