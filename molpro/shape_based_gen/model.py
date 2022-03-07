@@ -202,9 +202,6 @@ def main(params):
 
     model = ShapeBasedGenModule(encoder, decoder, vae_model)
 
-
-    cur_time = datetime.now().strftime("%d%m%Y_%H:%M:%S")
-
     print("Starting of trainers...")
     trainer = pl.Trainer(max_epochs=int(params.max_epochs),
                          progress_bar_refresh_rate=20,
