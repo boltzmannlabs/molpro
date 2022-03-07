@@ -26,6 +26,7 @@ def add_train_args(parser: ArgumentParser):
     parser.add_argument('--batch_size', type=int, default=3)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--num_workers', type=int, default=6)
+    parser.add_argument('--num_gpus', type=int, default=1)
     parser.add_argument('--verbose', action='store_true', default=False)
 
 def parse_train_args() -> Namespace:
@@ -130,9 +131,9 @@ def main(params):
     else :
         model=GeomolModelModule(hyperparams,num_node_features=44,num_edge_features=4)
     print("Starting of trainers...")
-    trainer = pl.Trainer(max_epochs=int(params.n_epochs),
+    trainer = pl.Trainer(max_epochs=params.n_epochs,
                          progress_bar_refresh_rate=20,
-                         gpus = -1 if torch.cuda.is_available() else None)
+                         gpus = params.num_gpus if torch.cuda.is_available() else None)
 
 
     trainer.fit(model, geomol_data)
