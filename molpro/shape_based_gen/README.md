@@ -12,6 +12,12 @@ We will be using a subset of Zinc15 dataset for our model training. That will on
       
 
 After downloading unzipping the file you will get a .smi file as name "zinc15_druglike_clean_canonical_max60.smi". which will have smiles.
+
+or if you just want to try on sample datset then we have created a sample dataset by randomly selecting datapoints from original dataset. You can download the sample dataset through the link :
+
+    https://drive.google.com/drive/folders/1CBakMNrUu-mJdH6oJJzNT1dcDVj6ECJV?usp=sharing
+    
+
 ##### Training of model:
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
 
