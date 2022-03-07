@@ -338,3 +338,56 @@ def make_3dgrid(coords: np.ndarray, features: np.ndarray, max_dist: int, grid_re
     for (x, y, z), f in zip(grid_coords[in_box], features[in_box]):
         grid[0, x, y, z] += f
     return grid
+
+def read_smi(smiles_path: str) -> List[str]:
+    """ Function to read smiles tokens from .smi file
+
+    Input Parameters :
+    -------------------------
+
+    smiles_path = str
+                 path for the .smi file
+    
+
+    Returns :
+    -------------------------
+    smiles_list : List[str]
+                 a list which contains smiles extracted from the input .smi file
+
+    
+    """
+
+    assert smiles_path.endswith(".smi"), "smiles file should end in .smi"
+    smiles_tokens = None
+    with open(smiles_path, 'r') as wf:
+        smiles_list = wf.read().split('\n')
+    return smiles_list
+
+
+def read_csv(csv_path: str) -> List[str]:
+    
+    """ Function to read smiles from .csv file
+
+    Input Parameters :
+    -------------------------
+
+    smiles_path = str
+                 path for the .csv file
+    
+
+    Returns :
+    -------------------------
+    smiles_list : List[str]
+                 a list which contains smiles extracted from the input .csv file
+
+    
+    """
+
+    assert csv_path.endswith(".csv"), "smiles file should end in .csv"
+    smiles_tokens = []
+    with open(csv_path, 'r') as wf:
+        data = csv.reader(wf, delimiter=',')
+        next(data, None)
+        for i in data:
+            smiles_tokens.append(i[0])
+        return smiles_tokens
