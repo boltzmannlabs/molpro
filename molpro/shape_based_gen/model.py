@@ -177,7 +177,7 @@ class ShapeBasedGenModule(pl.LightningModule):
             output = self.decoder.sample_prob(features)
         else :
             output = self.decoder.sample(features)
-            return output
+        return output
 
 
 
