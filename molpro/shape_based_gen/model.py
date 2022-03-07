@@ -56,9 +56,8 @@ class ShapeBasedGenModule(pl.LightningModule):
         self.decoder = decoder
         self.vae_model = vae_model
         self.cap_loss = 0.
-        ######################################################################################################################################################################
-        self.caption_start = 3
-        #######################################################################################################################################################################
+        #self.caption_start = 3 # for training on sample_dataset
+        self.caption_start = 4000
         self.caption_criterion = nn.CrossEntropyLoss()
         self.reconstruction_function = nn.BCELoss()
         self.reconstruction_function.size_average = False
@@ -197,27 +196,19 @@ def main(params):
 
     bpdata.prepare_data()
     encoder = ShapeEncoder(5)
-    #decoder = DecoderRNN(512, 1024, 29, 1,params.device)
-    decoder = DecoderRNN(512, 16, 29, 1,params.device)
+    #decoder = DecoderRNN(512, 16, 29, 1,params.device) for training on sample_dataset
+    decoder = DecoderRNN(512, 1024, 29, 1,params.device)
     vae_model = VAE(nc=5,device=params.device)
 
     model = ShapeBasedGenModule(encoder, decoder, vae_model)
 
 
     cur_time = datetime.now().strftime("%d%m%Y_%H:%M:%S")
-    save_models_dir = "./trained-models/"
-    os.makedirs(save_models_dir, exist_ok=True)
-
-    """val_p_loss_callback = ModelCheckpoint(monitor="val_p_loss",dirpath=save_models_dir,filename="val-ligdream-{epoch:02d}-{val_p_loss:.2f}"+f"-{cur_time}",
-                                                                                          save_top_k=3,mode="min")
-    val_cap_loss_callback = ModelCheckpoint(monitor="val_cap_loss",dirpath=save_models_dir,filename="val-ligdream-{epoch:02d}-{val_cap_loss:.2f}"+f"-{cur_time}",
-                                                             save_top_k=3,mode="min")"""
 
     print("Starting of trainers...")
     trainer = pl.Trainer(max_epochs=int(params.max_epochs),
                          progress_bar_refresh_rate=20,
                          gpus = None if params.device == "cpu" else int(params.gpus)
-                         #callbacks=[val_p_loss_callback,val_cap_loss_callback]
                          )
     trainer.fit(model, bpdata)
     print("Model Training Finished... Testing start...")
