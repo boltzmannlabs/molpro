@@ -12,7 +12,7 @@ from rdkit import Chem
 from rdkit.Chem.rdchem import HybridizationType, BondType as BT, ChiralType
 from molpro.geomol.geomol_utils import one_k_encoding , get_dihedral_pairs , dihedral_pattern,chirality,qm9_types,drugs_types
 import pytorch_lightning as pl
-from molpro.utils.dataset import drugs_confs,qm9_confs
+from molpro.utils.dataset import geomol_drugs_confs_dataset,geomol_qm9_confs_dataset
 
 class GeomolDataModule(pl.LightningDataModule):
     """Lightning datamodule to handle dataprep for dataloaders 
@@ -50,15 +50,15 @@ class GeomolDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         if self.dataset == "qm9":
-            self.train_loader = qm9_confs(self.dataset_path,self.train_indexes,"train")
-            self.val_loader = qm9_confs(self.dataset_path,self.val_indexes,"val")
-            self.test_loader = qm9_confs(self.dataset_path,self.test_indexes,"test")
+            self.train_loader = geomol_qm9_confs_dataset(self.dataset_path,self.train_indexes,"train")
+            self.val_loader = geomol_qm9_confs_dataset(self.dataset_path,self.val_indexes,"val")
+            self.test_loader = geomol_qm9_confs_dataset(self.dataset_path,self.test_indexes,"test")
         
 
         if self.dataset == "drugs":
-            self.train_loader = drugs_confs(self.dataset_path,self.train_indexes,"train")
-            self.val_loader = drugs_confs(self.dataset_path,self.train_indexes,"train")
-            self.test_loader = drugs_confs(self.dataset_path,self.train_indexes,"train")
+            self.train_loader = geomol_drugs_confs_dataset(self.dataset_path,self.train_indexes,"train")
+            self.val_loader = geomol_drugs_confs_dataset(self.dataset_path,self.train_indexes,"train")
+            self.test_loader = geomol_drugs_confs_dataset(self.dataset_path,self.train_indexes,"train")
         
     def train_dataloader(self):
         return DataLoader(self.train_loader, batch_size=self.batch_size,
