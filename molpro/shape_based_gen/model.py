@@ -17,8 +17,6 @@ from molpro.shape_based_gen.data import ShapeBasedGenDataModule, read_smi, read_
 def parse_options():
     """method to parse the some necessary argument for model training """
 
-    parser = argparse.ArgumentParser('modify config options by adding \
-                                      KEY VAL pairs', add_help=False)
     parser.add_argument("-i", "--input_path", required=True,
                                 help="Path to input smi file.")
     parser.add_argument("--batch_size", default=32, type=int,
