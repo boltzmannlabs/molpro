@@ -15,3 +15,5 @@ conda install -c conda-forge oddt
 conda install -c conda-forge plip
 conda install -c conda-forge biopython
 pip install biopandas
+pip install ipywidegts
+pip install py3Dmol
