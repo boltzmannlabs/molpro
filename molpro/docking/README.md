@@ -66,6 +66,7 @@ In this, we have created an End-to-End docking pipline, starting from docking, P
     
 ## 3) Protein ligand Interaction calculation
 
+    from molpro.docking.dock import Pro_lig_int
     interaction=Pro_lig_int(complex=None)
     
     
