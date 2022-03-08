@@ -5,7 +5,11 @@ Structures of protein–ligand complexes obtained from ligand docking are used t
 
 
 #### 2. Preparing dataset:
-We will be using a subset of PDBBind dataset given in the sample data folder for training. 
+We will be using a subset of PDBBind dataset given in the sample data folder for training. you can download the sample data from given link :
+    
+    https://drive.google.com/drive/folders/1pmoC4uBAiCkZHwYYaCAJg0OS3qlR-cgs?usp=sharing
+
+you can prepare the data for training from the raw data by running this command :
 
     python data.py --data_path {path where pdb and mol2 files are stored} --hdf_path {path where processed dataset is set to be stored} --df_path {path to csv file containing pdb ids and associated smiles} 
 
