@@ -3,7 +3,11 @@
 The aim of rational drug design is to discover new drugs faster and cheaper. Much of the effort is put into improving docking and scoring methodologies. However, most techniques assume that the exact location of binding sites – also referred to as pockets or binding cavities – is known. Such pockets can be located both on a surface of a single protein (and be used to modulate its activity) or at protein-protein interaction (PPI) interfaces (and be used to disrupt the interaction). This task is very challenging and we lack a method that would predict binding sites with high accuracy – most methods are able to detect only 30%–40% of pockets. In our case, the input is a 3D structure of a protein represented with a grid that can be analyzed in the same manner as 3D images, whereas the desired object is the binding pocket. Our model is based on U-Net – a state of the art model for image segmentation. The model takes protein structure as input, automatically converts it to a 3D grid with features, and outputs probability density – each point in the 3D space has assigned probability of being a part of a pocket.
 
 #### 2. Preparing dataset:
-We will be using a subset of scPDB dataset given in the sample data folder for training. 
+We will be using a subset of scPDB dataset given in the sample data folder for training. You can download the sample data from given link :
+
+    https://drive.google.com/drive/folders/1Z6WV3Pk6EQgUtWMEHn7xx1zhh2_dhFlh?usp=sharing
+    
+you can prepare the data for training from the raw data by running this command :
 
     python data.py --data_path {path where pdb and mol2 files are stored} --hdf_path {path where processed dataset is set to be stored}
 
@@ -38,7 +42,6 @@ Returns :
 
     Output files are stored according to output format and file name
     
-#### Sample Data Link: https://drive.google.com/drive/folders/1Z6WV3Pk6EQgUtWMEHn7xx1zhh2_dhFlh?usp=sharing
 
 #### Reference:
     
