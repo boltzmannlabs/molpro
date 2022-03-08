@@ -28,11 +28,11 @@ def prepare_dataset(data_path: str, hdf_path: str, df_path: str) -> None:
     with h5py.File(hdf_path, mode='w') as f:
         for i, structure_id in enumerate(tqdm(ids)):
             try:
-                protein_featurizer = Featurizer(os.path.join(data_path, structure_id, 'site.pdb'),
+                protein_featurizer = Featurizer(os.path.join(data_path, structure_id),
                                                 'pdb', named_props=['partialcharge', 'heavydegree'],
                                                 smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor', 'ring'],
                                                 metal_halogen_encode=False)
-                ligand_featurizer = Featurizer(os.path.join(data_path, structure_id, '%s' % ligand_path[i]),
+                ligand_featurizer = Featurizer(os.path.join(data_path, '%s' % ligand_path[i]),
                                                'mol2', named_props=['partialcharge'],
                                                smarts_labels=['hydrophobic', 'aromatic', 'acceptor', 'donor', 'ring'],
                                                metal_halogen_encode=False)
@@ -45,7 +45,7 @@ def prepare_dataset(data_path: str, hdf_path: str, df_path: str) -> None:
             centroid = prot_coords.mean(axis=0)
             prot_coords -= centroid
             ligand_coords -= centroid
-            group = f.create_group(structure_id)
+            group = f.create_group(ligand_path[i])
             for key, data in (('prot_coords', prot_coords),
                               ('prot_features', prot_features),
                               ('ligand_coords', ligand_coords),
@@ -130,11 +130,11 @@ class SiteGenDataModule(LightningDataModule):
 
 def parser_args():
     parser = ArgumentParser()
-    parser.add_argument("--data_path", type=str, default="sample_data/affinity_pred/data",
+    parser.add_argument("--data_path", type=str, default="sample_data/site_based_gen/data",
                         help="path where pdb and mol2 files are stored")
     parser.add_argument("--hdf_path", type=str, default="data.h5",
                         help="path where dataset is stored")
-    parser.add_argument("--df_path", type=str, default="sample_data/affinity_pred/splits/pdbbind.csv",
+    parser.add_argument("--df_path", type=str, default="sample_data/site_based_gen/splits/actives.csv",
                         help="path to csv file containing pdb ids and associated smiles")
     params = parser.parse_args()
     return params
