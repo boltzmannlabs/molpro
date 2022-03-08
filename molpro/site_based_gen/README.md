@@ -45,8 +45,6 @@ Returns :
 
     A list of SMILES containing less than or equal to generator_steps x decoding_steps entries : List[str]
 
-#### Sample data link: https://drive.google.com/drive/folders/1pmoC4uBAiCkZHwYYaCAJg0OS3qlR-cgs?usp=sharing
-
 #### Reference:
     
 Skalic, M., Sabbadin, D., Sattarov, B., Sciabola, S., & De Fabritiis, G. (2019). From target to drug: Generative modeling for the multimodal structure-based ligand design. Molecular Pharmaceutics, 16(10), 4282–4291. https://doi.org/10.1021/acs.molpharmaceut.9b00634
