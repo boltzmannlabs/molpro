@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from pytorch_lightning import LightningModule, Trainer
 from molpro.models.resnet import ResNet
-from affinity_pred.data import AffinityPredDataModule
+from molpro.affinity_pred.data import AffinityPredDataModule
 from argparse import ArgumentParser
 import torchmetrics
 from pytorch_lightning.callbacks import ModelCheckpoint
