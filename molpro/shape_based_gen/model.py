@@ -8,7 +8,8 @@ from torch.nn.utils.rnn import pack_padded_sequence
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from molpro.models.shape_captioning import ShapeEncoder, DecoderRNN, VAE
-from molpro.shape_based_gen.data import ShapeBasedGenDataModule, read_smi, read_csv
+from molpro.shape_based_gen.data import ShapeBasedGenDataModule
+from molpro.utils.preprocess import read_smi, read_csv
 
 
 
