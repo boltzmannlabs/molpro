@@ -38,4 +38,9 @@ Returns :
 
     Output files are stored according to output format and file name
     
-Sample Data Link: https://drive.google.com/drive/folders/1Z6WV3Pk6EQgUtWMEHn7xx1zhh2_dhFlh?usp=sharing
+#### Sample Data Link: https://drive.google.com/drive/folders/1Z6WV3Pk6EQgUtWMEHn7xx1zhh2_dhFlh?usp=sharing
+
+#### Reference:
+    
+Stepniewska-Dziubinska, M. M., Zielenkiewicz, P., & Siedlecki, P. (2020). Improving detection of protein-ligand binding sites with 3D segmentation. Scientific Reports, 10(1), 5035. https://doi.org/10.1038/s41598-020-61860-z
+
