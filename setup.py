@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 setup(name = "molpro", version = 0.1,
       author="Boltzmann Labs",
       author_email="contact@boltzmann.co",
-      description="A python package for 3d structure based drug design,
+      description="A python package for 3d structure based drug design",
       url="https://github.com/boltzmannlabs/molpro",
       classifiers=[
         "Programming Language :: Python :: 3",
