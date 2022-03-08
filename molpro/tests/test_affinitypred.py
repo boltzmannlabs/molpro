@@ -1,4 +1,4 @@
-from molpro.site_pred.model import AffinityPredModel
+from molpro.affinity_pred.model import AffinityPredModel
 from argparse import ArgumentParser
 import torch
 
