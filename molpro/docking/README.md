@@ -49,6 +49,7 @@ In this, we have created an End-to-End docking pipline, starting from docking, P
            
 ## 2) preparing the complex files for protein-Ligand interaction calculation
 
+    from molpro.docking import complex_prep
     complex_prep(protein = None,ligand= None ,ligand_file_type = None)
 
 ## Input parameters :
