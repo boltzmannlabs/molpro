@@ -3,7 +3,12 @@
 The worldwide increase and proliferation of drug resistant microbes, coupled with the lag in new drug development, represents a major threat to human health. In order to reduce the time and cost for exploring the chemical search space, drug discovery increasingly relies on computational biology approaches. One key step in these approaches is the need for the rapid and accurate prediction of the binding affinity for potential leads. Here, we present an ensemble of three-dimensional (3D) Convolutional Neural Networks (CNNs), which combines voxelized  molecular descriptors for predicting the absolute binding affinity of protein–ligand complexes.
 
 #### 2. Preparing dataset:
-We will be using a subset of PDBBind dataset given in the sample data folder for training. 
+We will be using a subset of PDBBind dataset given in the sample data folder for training. you can download the sample data from given link :
+
+    https://drive.google.com/drive/folders/15x-gLYOGfXYpGjVafmNLIv33e1pm7dUY?usp=sharing
+
+
+you can prepare the data for training from the raw data by running this command :
 
     python data.py --data_path {path where pdb and mol2 files are stored} --hdf_path {path where processed dataset is set to be stored} --df_path {path to csv     file containing pkd values and pdb ids} 
 
@@ -37,8 +42,6 @@ Input parameters :
 Returns : 
 
     pkd value of the protein ligand complex : float
-
-#### Sample Data Link: https://drive.google.com/drive/folders/15x-gLYOGfXYpGjVafmNLIv33e1pm7dUY?usp=sharing
 
 #### Reference: 
     
