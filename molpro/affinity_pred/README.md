@@ -43,7 +43,6 @@ Returns :
 
     pkd value of the protein ligand complex : float
 
-#### Sample data link: https://drive.google.com/drive/folders/15x-gLYOGfXYpGjVafmNLIv33e1pm7dUY?usp=sharing
 
 #### Reference: 
     
