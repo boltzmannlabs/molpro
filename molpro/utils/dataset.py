@@ -18,7 +18,6 @@ from rdkit.Chem.rdchem import BondType as BT
 from molpro.geomol.geomol_utils import one_k_encoding, get_dihedral_pairs, dihedral_pattern, \
     chirality, qm9_types, drugs_types
 from molpro.utils.preprocess import make_3dgrid, Featurizer, rotate_grid
-from molpro.shape_based_gen.data import vocab_c2i_v1
 
 
 class AffinityPredDataset(Dataset):
@@ -289,7 +288,17 @@ class SitePredDataset(Dataset):
         pocket_dens = pocket_dens.transpose((3, 0, 1, 2))
         return rec_grid, pocket_dens
 
+VOCAB_LIST = [
+                "pad", "start", "end",
+                "C", "c", "N", "n", "S", "s", "P", "O", "o",
+                "B", "F", "I",
+                "X", "Y", "Z",
+                "1", "2", "3", "4", "5", "6",
+                "#", "=", "-", "(", ")"  # Misc
+            ]
 
+vocab_c2i_v1 = {x: i for i, x in enumerate(VOCAB_LIST)}
+vocab_i2c_v1 = {i: x for i, x in enumerate(VOCAB_LIST)}
 class ShapeBasedGenDataset(Dataset):
     """ Class to featurize smile while training 
 
