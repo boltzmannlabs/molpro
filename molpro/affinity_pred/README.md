@@ -43,6 +43,8 @@ Returns :
 
     pkd value of the protein ligand complex : float
 
+#### Sample data link: https://drive.google.com/drive/folders/15x-gLYOGfXYpGjVafmNLIv33e1pm7dUY?usp=sharing
+
 #### Reference: 
     
 Hassan-Harrirou, H., Zhang, C., & Lemmin, T. (2020). Rosenet: Improving binding affinity prediction by leveraging molecular mechanics energies with an ensemble of 3d convolutional neural networks. Journal of Chemical Information and Modeling, 60(6), 2791–2802. https://doi.org/10.1021/acs.jcim.0c00075
