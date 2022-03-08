@@ -23,6 +23,6 @@ def test_sitepred_model():
     args = parser.parse_args()
     model = SitePredModel(**vars(args))
     print(model.hparams)
-    x = torch.rand((2, 34, 36, 36, 36))
+    x = torch.rand((2, 18, 36, 36, 36))
     preds = model(x)
     assert preds is not None and type(preds).__name__ == 'Tensor' and preds.shape == (2, 1, 36, 36, 36)
