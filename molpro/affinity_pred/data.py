@@ -15,11 +15,11 @@ def prepare_dataset(data_path: str, hdf_path: str, df_path: str) -> None:
         Parameters
         ----------
         data_path: str,
-            Path containing pdb files
+            path where pdb and mol2 files are stored
         hdf_path: str,
-            Path to save the HDF5 file
+            path where dataset will be stored
         df_path: str,
-            Path to csv file containing pkd values and pdb ids
+            path to csv file containing pkd values and pdb ids
     """
 
     ids = os.listdir(data_path)
@@ -127,20 +127,3 @@ class AffinityPredDataModule(LightningDataModule):
         loader = DataLoader(self.test_dataset, batch_size=1, shuffle=False,
                             num_workers=self.num_workers, pin_memory=self.pin_memory)
         return loader
-
-
-def parser_args():
-    parser = ArgumentParser()
-    parser.add_argument("--data_path", type=str, default="sample_data/affinity_pred/data",
-                        help="path where pdb and mol2 files are stored")
-    parser.add_argument("--hdf_path", type=str, default="data.h5",
-                        help="path where dataset is stored")
-    parser.add_argument("--df_path", type=str, default="sample_data/affinity_pred/splits/pdbbind.csv",
-                        help="path to csv file containing pkd values and pdb ids")
-    params = parser.parse_args()
-    return params
-
-
-if __name__ == '__main__':
-    hparams = parser_args()
-    prepare_dataset(hparams.data_path, hparams.hdf_path, hparams.df_path)
