@@ -41,6 +41,27 @@ Once you have the dataset you can start training the model. For that can run the
     from molpro.geomol.model import train_geomol
     train_geomol(data_dir:str = "/",dataset:str = "drugs", seed:int=0, n_epochs:int = 2, batch_size:int = 16,
                                       lr:float = 1e-3, num_workers:int = 6, num_gpus:int = 1, verbose:bool = False)
+                                      
+Input Parameters :
+    
+    data_dir : str 
+             directory path where data is stored for training
+    dataset : str
+             on which dataset you want to train the model "drugs" or "qm9"
+    seed : int
+           the seed you want to fix
+    n_epochs : int 
+           number of epochs you want to train the model
+    bath_size : int
+           bath size for model training
+    lr : float
+           learning rate for optimizers
+    num_workers : int
+           number of workers to be used
+    num_gpus : int
+           on how many gpus you want to train then model
+    verbose : bool
+           verbose "True" or "False"
 
 after executing you will get a new folder called "lightning_logs".
 
