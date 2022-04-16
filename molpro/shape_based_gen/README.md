@@ -21,9 +21,26 @@ or if you just want to try on sample datset then we have created a sample datase
     
 
 ##### Training of model:
-Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
+Once you have the dataset you can start training the model. For that can execute the function : 
 
-    python model.py --input_path {path_for_.smi_file} --batch_size {your_batch_size} --max_epochs {max_numnber_of_epochs} --num_workers {num_of_workers} --device {'cpu'_or_'gpu'} --gpus {num_of_gpus_for_training}
+    from molrpro.dhape_based_gen.model import train_shape_based_gen
+    train_shape_based_gen(input_path:str = "/", batch_size:int = 32, max_epochs:int = 3, 
+                         num_workers:int = 6, device:str = "cpu",gpus:int = 1)
+        
+Input Parameters :
+    
+    input_path : str 
+              Path to input smi file.
+    batch_size : int
+              batch size for single gpu
+    max_epochs : int 
+              max epochs to train for 
+    num_workers : int
+              number of workers for pytorch dataloader 
+    device : str
+              on which device you want to train the model (cpu or cuda)
+    gpus : int 
+              numbers of gpus to train model
 
 after executing you will get a new folder called "lightning_logs".
 
