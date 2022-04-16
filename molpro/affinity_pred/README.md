@@ -23,7 +23,7 @@ Input Parameters :
             path to csv file containing pkd values and pdb ids
 
 #### 3. Training model: 
-Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
+Once you have the dataset you can start training the model. For that can run this function : 
 
     python model.py --hdf_path {path where dataset is stored} --train_ids_path {path where list of train ids is stored} --val_ids_path {path where list of validation ids is stored} --test_ids_path {path where list of test ids is stored} --batch_size {batch size for model training} --max_epochs {epochs to train for} --num_workers {number of workers for dataloader} --gpus {num_of_gpus_for_training: None for 'cpu'}
 
