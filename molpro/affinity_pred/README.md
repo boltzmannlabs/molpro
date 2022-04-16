@@ -8,9 +8,19 @@ We will be using a subset of PDBBind dataset given in the sample data folder for
     https://drive.google.com/drive/folders/15x-gLYOGfXYpGjVafmNLIv33e1pm7dUY?usp=sharing
 
 
-you can prepare the data for training from the raw data by running this command :
+you can prepare the data for training from the raw data by running this function :
 
-    python data.py --data_path {path where pdb and mol2 files are stored} --hdf_path {path where processed dataset is set to be stored} --df_path {path to csv     file containing pkd values and pdb ids} 
+    from molpro.afffinity_pred.data import prepare_dataset
+    prepare_dataset(data_path, hdf_path, df_path)
+    
+Input Parameters :
+    
+    data_path : str 
+            path where pdb and mol2 files are stored
+    hdf_path :
+            path where processed dataset is set to be stored
+    df_path : str
+            path to csv file containing pkd values and pdb ids
 
 #### 3. Training model: 
 Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
