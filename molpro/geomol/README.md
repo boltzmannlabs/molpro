@@ -36,9 +36,11 @@ or if you just want to try on sample datset then we have created a sample datase
     https://drive.google.com/drive/folders/1Y7gktdSyq3iu6OmHXVdUfgANvtOq9GU_?usp=sharing
 
 ##### Training of model:
-Once you have the dataset you can start training the model. For that can execute model.py file with the following command : 
+Once you have the dataset you can start training the model. For that can run the function: 
 
-    python model.py --data_dir {pat_of_the_dataset_directory(drugs or qm9)}  --n_epochs {max_number_of_epoch} --dataset {which_dataset_will_be_used_for_training_('drugs' or 'qm9')
+    from molpro.geomol.model import train_geomol
+    train_geomol(data_dir:str = "/",dataset:str = "drugs", seed:int=0, n_epochs:int = 2, batch_size:int = 16,
+                                      lr:float = 1e-3, num_workers:int = 6, num_gpus:int = 1, verbose:bool = False)
 
 after executing you will get a new folder called "lightning_logs".
 
