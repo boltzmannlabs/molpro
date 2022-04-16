@@ -12,28 +12,6 @@ from molpro.shape_based_gen.data import ShapeBasedGenDataModule
 from molpro.utils.preprocess import read_smi, read_csv
 
 
-
-
-def parse_options():
-    """method to parse the some necessary argument for model training """
-
-    parser.add_argument("-i", "--input_path", required=True,
-                                help="Path to input smi file.")
-    parser.add_argument("--batch_size", default=32, type=int,
-                                help="batch size for single gpu")
-    parser.add_argument("--max_epochs", default=3, type=int,
-                                help="max epochs to train for")
-    parser.add_argument("--num_workers", type=int, default=6,
-                                help="number of workers for pytorch dataloader")
-    parser.add_argument("--device", default="cpu", type=str,
-                                help="on which device you want to train the model (cpu or cuda)")
-    parser.add_argument("--gpus", default=1, type=int,
-                                help="numbers of gpus to train model")
-    
-    args, unparsed = parser.parse_known_args()
-    return args
-
-
 def loss_function(reconstruction_function, recon_x, x, mu, logvar):
     """custom loss function using binary cross entropy and KL divergence"""
 
@@ -181,15 +159,35 @@ class ShapeBasedGenModule(pl.LightningModule):
         return output
 
 
+def train_shape_based_gen(input_path:str = "/", batch_size:int = 32, max_epochs:int = 3, 
+                         num_workers:int = 6, device:str = "cpu",gpus:int = 1):
 
-def main(params):
-    print("Starting of main function...")
+    """ This function trains shape_based_gen model.
 
-    data_time = time.time()
-    bpdata = ShapeBasedGenDataModule(smiles_path=params.input_path,
-                          batch_size=params.batch_size,
-                          read_func=read_smi if params.input_path.endswith("smi") else read_csv,
-                          nworkers = params.num_workers)
+    Parameters :
+    ------------
+    input_path : str 
+              Path to input smi file.
+    batch_size : int
+              batch size for single gpu
+    max_epochs : int 
+              max epochs to train for 
+    num_workers : int
+              number of workers for pytorch dataloader 
+    device : str
+              on which device you want to train the model (cpu or cuda)
+    gpus : int 
+              numbers of gpus to train model
+    """ 
+
+
+
+    start_time = time.perf_counter()
+
+    bpdata = ShapeBasedGenDataModule(smiles_path=input_path,
+                          batch_size=batch_size,
+                          read_func=read_smi if input_path.endswith("smi") else read_csv,
+                          nworkers = num_workers)
 
 
     bpdata.prepare_data()
@@ -208,11 +206,4 @@ def main(params):
     trainer.fit(model, bpdata)
     print("Model Training Finished... Testing start...")
     trainer.test(model, bpdata)
-
-
-if __name__ == "__main__":
-    start_time = time.perf_counter()
-    parser = ArgumentParser()
-    configs = parse_options()
-    main(configs)
     print(f"Total time taken: {time.perf_counter() - start_time}")
