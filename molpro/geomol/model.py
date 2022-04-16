@@ -1,5 +1,3 @@
-from argparse import ArgumentParser, Namespace
-import argparse
 import csv
 import time
 import torch
@@ -9,37 +7,6 @@ import pytorch_lightning as pl
 from molpro.models.geomol_model import GeoMol
 from molpro.geomol.data import GeomolDataModule
 from molpro.geomol.geomol_utils import construct_conformers
-
-def add_train_args(parser: ArgumentParser):
-    """
-    Adds training arguments to an ArgumentParser.
-
-    :param parser: An ArgumentParser.
-    """
-    # General arguments
-    parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--dataset', type=str, default='drugs')
-    parser.add_argument('--seed', type=int, default=0)
-
-    # Training arguments
-    parser.add_argument('--n_epochs', type=int, default=2)
-    parser.add_argument('--batch_size', type=int, default=3)
-    parser.add_argument('--lr', type=float, default=1e-3)
-    parser.add_argument('--num_workers', type=int, default=6)
-    parser.add_argument('--num_gpus', type=int, default=1)
-    parser.add_argument('--verbose', action='store_true', default=False)
-
-def parse_train_args() -> Namespace:
-    """
-    Parses arguments for training (includes modifying/validating arguments).
-
-    :return: A Namespace containing the parsed, modified, and validated args.
-    """
-    parser = ArgumentParser()
-    add_train_args(parser)
-    args = parser.parse_args()
-
-    return args
 
 
 def set_hyperparams():
@@ -114,14 +81,14 @@ class GeomolModelModule(pl.LightningModule):
 
 
 
-def main(params):
-    print("Starting of main Func")
-    st = time.perf_counter()
 
-    print(params)
+
+def train_geomol(data_dir:str = "/",dataset:str = "drugs", seed:int=0, n_epochs:int = 2, batch_size:int = 16,
+                                      lr:float = 1e-3, num_workers:int = 6, num_gpus:int = 1, verbose:bool = False):
+    
+    st = time.perf_counter()
     geomol_data = GeomolDataModule(dataset_path=params.data_dir,dataset=params.dataset,
                           batch_size=params.batch_size)
-
 
     geomol_data.prepare_data()
     geomol_data.setup()
@@ -135,17 +102,7 @@ def main(params):
                          progress_bar_refresh_rate=20,
                          gpus = params.num_gpus if torch.cuda.is_available() else None)
 
-
     trainer.fit(model, geomol_data)
     print("Training completed... Testing start....")
     trainer.test(model, geomol_data)
-
-
-if __name__ == "__main__":
-    st = time.perf_counter()
-    configs = parse_train_args()
-    print("config :",configs)
-    main(configs)
     print(f"Total time taken: {time.perf_counter() - st}")
-
-
