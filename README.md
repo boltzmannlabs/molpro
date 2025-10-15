@@ -1,6 +1,8 @@
 # MolPro
 ##### MolPro is a comprehensive python package for small molecule generation using protein active site or/and similar molecules using 3D information of molecules with in-silico validation of molecules by docking , pharmacophore hypothesis. Also off target prediction based on the binding site similarities. 
 
+We will be upgrading this package soon.
+
 
 ## How to use --
 
